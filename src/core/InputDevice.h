@@ -2,12 +2,12 @@
 
 #include <unordered_set>
 #include "Keys.h"
-#include "Exports.h"
-
+#include <SimpleMath.h>
+#include "Delegates.h"
 
 class Game;
 
-class GAMEFRAMEWORK_API InputDevice
+class InputDevice
 {
 	friend class Game;
 	
@@ -34,7 +34,6 @@ public:
 	
 	InputDevice(Game* inGame);
 	~InputDevice();
-
 
 	void AddPressedKey(Keys key);
 	void RemovePressedKey(Keys key);

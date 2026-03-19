@@ -1,0 +1,9 @@
+[project]
+name = "Super Shadder"
+version = "0.1.0"
+description = "Му project for masters realtime graphics course"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "scons>=4.10.1",
+]
