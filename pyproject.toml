@@ -1,5 +1,5 @@
 [project]
-name = "Super Shadder"
+name = "super-shadder"
 version = "0.1.0"
 description = "Му project for masters realtime graphics course"
 readme = "README.md"

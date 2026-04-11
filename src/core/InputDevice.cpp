@@ -1,6 +1,6 @@
 #include "InputDevice.h"
 #include <iostream>
-
+#include <direct.h>
 
 using namespace DirectX::SimpleMath;
 
