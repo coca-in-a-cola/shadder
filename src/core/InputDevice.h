@@ -6,6 +6,8 @@
 #include <d3d11.h>
 #include <unordered_set>
 
+class Game;
+
 class InputDevice {
   friend class Game;
 

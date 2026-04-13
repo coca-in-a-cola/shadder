@@ -156,13 +156,13 @@ namespace _DelegatesInteral
 		using Type = RetVal(Object::*)(Args...);
 	};
 
-	static void* (*Alloc)(size_t size) = [](size_t size) { return malloc(size); };
-	static void(*Free)(void* pPtr) = [](void* pPtr) { free(pPtr); };
+	inline void* (*Alloc)(size_t size) = [](size_t size) { return malloc(size); };
+	inline void(*Free)(void* pPtr) = [](void* pPtr) { free(pPtr); };
 	template<typename T>
 	void DelegateDeleteFunc(T* pPtr)
 	{
 		pPtr->~T();
-		DelegateFreeFunc(pPtr);
+		Free(pPtr);
 	}
 }
 

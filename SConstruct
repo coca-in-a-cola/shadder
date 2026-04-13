@@ -48,9 +48,6 @@ env = Environment(
     TARGET_ARCH='x86_64',
 )
 
-# NuGet packages structure their C++ files under the 'native' folder
-dxtk_include = os.path.join(dxtk_base, 'include')
-
 # The '#' tells SCons to look at the project root, regardless of VariantDir
 env.Append(CPPPATH=[
     'src', 
@@ -58,13 +55,31 @@ env.Append(CPPPATH=[
     '#/thirdparty/directxtk/include' 
 ])
 
-# Do the same for your LIBPATH just to be safe:
-if debug == '1':
-    env.Append(LIBPATH=['#/thirdparty/directxtk/lib/x64/Debug']) # Adjust 'lib...' to your actual path
-else:
-    env.Append(LIBPATH=['#/thirdparty/directxtk/lib/x64/Release'])
+# UNICODE support (needed for wide-string Win32 APIs and D3DCompileFromFile)
+env.Append(CPPDEFINES=['UNICODE', '_UNICODE'])
 
-sources = ['bin/main.cpp'] + Glob('bin/core/*.cpp')
+# Enable C++ exception handling and C++17
+env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+
+# Library paths — NuGet packages put libs under native/lib/
+if debug == '1':
+    env.Append(LIBPATH=['#/thirdparty/directxtk/native/lib/x64/Debug'])
+else:
+    env.Append(LIBPATH=['#/thirdparty/directxtk/native/lib/x64/Release'])
+
+# System and D3D libraries
+env.Append(LIBS=[
+    'user32', 'gdi32', 'ole32', 'kernel32',
+    'd3d11', 'dxgi', 'd3dcompiler', 'dxguid',
+])
+
+# Collect all source files including subdirectories
+sources = (
+    ['bin/main.cpp'] 
+    + Glob('bin/core/*.cpp') 
+    + Glob('bin/core/game/*.cpp')
+)
+
 prog = env.Program(target='bin/SuperShadder', source=sources)
 
 env.Command('run', prog, os.path.abspath('bin/SuperShadder.exe'))
