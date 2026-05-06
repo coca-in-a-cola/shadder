@@ -401,3 +401,6 @@ $RECYCLE.BIN/
 # SCons downloads dependencies automatically
 # !thirdparty  # Uncomment if you want to track thirdparty in git
 thirdparty
+
+.opencode
+build

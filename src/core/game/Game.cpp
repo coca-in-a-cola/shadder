@@ -1,5 +1,4 @@
 #include "Game.h"
-#include <stdexcept>
 #include <iostream>
 
 #pragma comment(lib, "d3d11.lib")
@@ -13,7 +12,6 @@ Game::Game()
     , frameCount(0)
     , prevTime(std::chrono::steady_clock::now())
     , startTime(std::chrono::steady_clock::now())
-    , name("MyGame")
 {
 }
 
@@ -62,7 +60,7 @@ bool Game::Initialize(DisplayWin32* inDisplay)
     );
 
     if (FAILED(res)) {
-        std::cout << "D3D11CreateDeviceAndSwapChain failed! HRESULT: " << std::hex << res << std::endl;
+        std::cout << "D3D11CreateDeviceAndSwapChain failed! HRESULT: " << std::hex << res << '\n';
         return false;
     }
 
@@ -85,22 +83,20 @@ void Game::Run()
         // Обработка Windows сообщений
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
+            if (msg.message == WM_QUIT)
+            {
+                isExitRequested = true;
+                break;
+            }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        }
-
-        // Если Windows сигнализирует о завершении приложения
-        if (msg.message == WM_QUIT)
-        {
-            isExitRequested = true;
         }
 
         if (!isExitRequested)
         {
             // Обновление времени
             auto curTime = std::chrono::steady_clock::now();
-            float deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(
-                curTime - prevTime).count() / 1000000.0f;
+            float deltaTime = std::chrono::duration<float>(curTime - prevTime).count();
             prevTime = curTime;
 
             totalTime += deltaTime;
@@ -113,8 +109,8 @@ void Game::Run()
                 totalTime -= 1.0f;
 
                 WCHAR text[256];
-                swprintf_s(text, L"FPS: %f", fps);
-                SetWindowText(display->hWnd, text);
+                swprintf_s(text, L"FPS: %f", fps); // NOLINT(cppcoreguidelines-pro-type-vararg)
+                SetWindowTextW(display->hWnd, text);
 
                 frameCount = 0;
             }
@@ -195,7 +191,7 @@ void Game::EndFrame()
     // Presentation swap chain
     if (swapChain)
     {
-        swapChain->Present(1, 0);
+        (void)swapChain->Present(1, 0);
     }
 }
 

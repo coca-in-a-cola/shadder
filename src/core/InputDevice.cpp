@@ -7,8 +7,6 @@ using namespace DirectX::SimpleMath;
 
 InputDevice::InputDevice(Game* inGame) : game(inGame)
 {
-	keys = new std::unordered_set<Keys>();
-
 	RAWINPUTDEVICE Rid[2];
 
 	Rid[0].usUsagePage = 0x01;
@@ -24,14 +22,11 @@ InputDevice::InputDevice(Game* inGame) : game(inGame)
 	if (RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
 	{
 		auto errorCode = GetLastError();
-		std::cout << "ERROR: " << errorCode << std::endl;
+		std::cout << "ERROR: " << errorCode << '\n';
 	}
 }
 
-InputDevice::~InputDevice()
-{
-	delete keys;
-}
+
 
 void InputDevice::OnKeyDown(KeyboardInputEventArgs args)
 {
@@ -43,9 +38,9 @@ void InputDevice::OnKeyDown(KeyboardInputEventArgs args)
 	if (args.MakeCode == 54) key = Keys::RightShift;
 	
 	if(Break) {
-		if(keys->count(key))	RemovePressedKey(key);
+		if(keys.count(key))	RemovePressedKey(key);
 	} else {
-		if (!keys->count(key))	AddPressedKey(key);
+		if (!keys.count(key))	AddPressedKey(key);
 	}
 }
 
@@ -89,16 +84,16 @@ void InputDevice::AddPressedKey(Keys key)
 	//if (!game->isActive) {
 	//	return;
 	//}
-	keys->insert(key);
+	keys.insert(key);
 }
 
 void InputDevice::RemovePressedKey(Keys key)
 {
-	keys->erase(key);
+	keys.erase(key);
 }
 
 bool InputDevice::IsKeyDown(Keys key)
 {
-	return keys->count(key);
+	return keys.count(key);
 }
 

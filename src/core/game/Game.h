@@ -35,14 +35,14 @@ public:
   void AddComponent(std::unique_ptr<GameComponent> component);
 
   // Публичные геттеры
-  ID3D11Device* GetDevice() { return device.Get(); }
-  ID3D11DeviceContext* GetContext() { return context.Get(); }
-  IDXGISwapChain* GetSwapChain() { return swapChain.Get(); }
-  ID3D11RenderTargetView* GetRenderTargetView() { return renderTargetView.Get(); }
-  InputDevice* GetInputDevice() { return inputDevice.get(); }
-  DisplayWin32* GetDisplay() { return display; }
-  float GetTotalTime() const { return totalTime; }
-  HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
+  [[nodiscard]] ID3D11Device* GetDevice() const { return device.Get(); }
+  [[nodiscard]] ID3D11DeviceContext* GetContext() const { return context.Get(); }
+  [[nodiscard]] IDXGISwapChain* GetSwapChain() const { return swapChain.Get(); }
+  [[nodiscard]] ID3D11RenderTargetView* GetRenderTargetView() const { return renderTargetView.Get(); }
+  [[nodiscard]] InputDevice* GetInputDevice() const { return inputDevice.get(); }
+  [[nodiscard]] DisplayWin32* GetDisplay() const { return display; }
+  [[nodiscard]] float GetTotalTime() const { return totalTime; }
+  [[nodiscard]] HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
 
 protected:
   // Виртуальные методы для переопределения в наследниках
@@ -62,9 +62,9 @@ protected:
   virtual void ScreenResized(int width, int height);
 
   // Имя приложения
-  std::string name;
+  // std::string name; // unused, commented out
 
-  // Display (owned externally)
+  // Display (owned externally, not destroyed by Game)
   DisplayWin32* display;
 
   // D3D11 устройства

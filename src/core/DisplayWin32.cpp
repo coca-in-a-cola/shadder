@@ -3,7 +3,6 @@
 DisplayWin32::DisplayWin32(LPCWSTR applicationName, HINSTANCE hInst, int screenWidth, int screenHeight, WNDPROC wndProc)
     : hInstance(hInst)
     , hWnd(nullptr)
-    , Module(nullptr)
     , wc{}
     , ClientWidth(screenWidth)
     , ClientHeight(screenHeight)
@@ -41,6 +40,4 @@ DisplayWin32::DisplayWin32(LPCWSTR applicationName, HINSTANCE hInst, int screenW
     ShowCursor(true);
 }
 
-DisplayWin32::~DisplayWin32()
-{
-}
+

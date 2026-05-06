@@ -3,6 +3,9 @@ import os
 import urllib.request
 import zipfile
 
+BUILD_DIR = 'build'
+PROGRAMM_NAME = 'SuperShadder'
+
 # ---------------------------------------------------------
 # 1. THIRDPARTY MANAGER (The Godot Way)
 # ---------------------------------------------------------
@@ -33,13 +36,23 @@ def fetch_directxtk():
     
     return dxtk_dir
 
+def copyfiles(source: str):
+    src_dir = 'src_assets'
+    build_dir = 'build/assets'
+
+    env.Command(
+        target=build_dir,
+        source=source,
+        action=Copy('$TARGET', '$SOURCE')
+    )
+
 # Fetch dependencies before building
 dxtk_base = fetch_directxtk()
 
 # ---------------------------------------------------------
 # 2. STANDARD BUILD ENVIRONMENT
 # ---------------------------------------------------------
-VariantDir('bin', 'src', duplicate=False)
+VariantDir(BUILD_DIR, 'src', duplicate=False)
 
 debug = ARGUMENTS.get('debug', '1')
 
@@ -75,11 +88,11 @@ env.Append(LIBS=[
 
 # Collect all source files including subdirectories
 sources = (
-    ['bin/main.cpp'] 
-    + Glob('bin/core/*.cpp') 
-    + Glob('bin/core/game/*.cpp')
+    [f'{BUILD_DIR}/main.cpp'] 
+    + Glob(f'{BUILD_DIR}/core/*.cpp') 
+    + Glob(f'{BUILD_DIR}/core/game/*.cpp')
 )
 
-prog = env.Program(target='bin/SuperShadder', source=sources)
+prog = env.Program(target=f'{BUILD_DIR}/{PROGRAMM_NAME}', source=sources)
 
-env.Command('run', prog, os.path.abspath('bin/SuperShadder.exe'))
+# env.Command('run', prog, os.path.abspath(f'{BUILD_DIR}/{PROGRAMM_NAME}.exe'))

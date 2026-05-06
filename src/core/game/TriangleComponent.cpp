@@ -6,8 +6,6 @@
 
 TriangleComponent::TriangleComponent(Game* inGame)
     : GameComponent(inGame)
-    , vertexShaderByteCode(nullptr)
-    , pixelShaderByteCode(nullptr)
 {
     // Triangle vertices: position + color interleaved (4 vertices for a quad)
     points[0] = DirectX::XMFLOAT4( 0.5f,  0.5f, 0.5f, 1.0f);
@@ -36,15 +34,15 @@ void TriangleComponent::Initialize()
         nullptr /*macros*/, nullptr /*include*/,
         "VSMain", "vs_5_0",
         D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
-        &vertexShaderByteCode, &errorCode);
+         vertexShaderByteCode.GetAddressOf(), &errorCode);
 
     if (FAILED(res)) {
         if (errorCode) {
             std::cout << "Vertex shader error: "
-                      << (char*)errorCode->GetBufferPointer() << std::endl;
+                      << (char*)errorCode->GetBufferPointer() << '\n';
             errorCode->Release();
         } else {
-            std::cout << "Missing shader file: data/MyVeryFirstShader.hlsl" << std::endl;
+            std::cout             << "Missing shader file: data/MyVeryFirstShader.hlsl" << '\n';
         }
         return;
     }
@@ -61,12 +59,12 @@ void TriangleComponent::Initialize()
         macros /*macros*/, nullptr /*include*/,
         "PSMain", "ps_5_0",
         D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION, 0,
-        &pixelShaderByteCode, &errorCode);
+         pixelShaderByteCode.GetAddressOf(), &errorCode);
 
     if (FAILED(res)) {
         if (errorCode) {
             std::cout << "Pixel shader error: "
-                      << (char*)errorCode->GetBufferPointer() << std::endl;
+                      << (char*)errorCode->GetBufferPointer() << '\n';
             errorCode->Release();
         }
         return;
@@ -161,12 +159,6 @@ void TriangleComponent::Draw()
 
 void TriangleComponent::DestroyResources()
 {
-    if (vertexShaderByteCode) {
-        vertexShaderByteCode->Release();
-        vertexShaderByteCode = nullptr;
-    }
-    if (pixelShaderByteCode) {
-        pixelShaderByteCode->Release();
-        pixelShaderByteCode = nullptr;
-    }
+    vertexShaderByteCode.Reset();
+    pixelShaderByteCode.Reset();
 }

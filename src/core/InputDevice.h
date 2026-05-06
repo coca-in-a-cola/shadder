@@ -13,7 +13,7 @@ class InputDevice {
 
   Game *game;
 
-  std::unordered_set<Keys> *keys;
+  std::unordered_set<Keys> keys;
 
 public:
   struct MouseMoveEventArgs {
@@ -22,15 +22,15 @@ public:
     int WheelDelta;
   };
 
-  DirectX::SimpleMath::Vector2 MousePosition;
-  DirectX::SimpleMath::Vector2 MouseOffset;
-  int MouseWheelDelta;
+  DirectX::SimpleMath::Vector2 MousePosition{};
+  DirectX::SimpleMath::Vector2 MouseOffset{};
+  int MouseWheelDelta{};
 
   MulticastDelegate<const MouseMoveEventArgs &> MouseMove;
 
 public:
   InputDevice(Game *inGame);
-  ~InputDevice();
+  ~InputDevice() = default;
 
   void AddPressedKey(Keys key);
   void RemovePressedKey(Keys key);

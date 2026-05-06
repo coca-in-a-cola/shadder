@@ -5,7 +5,7 @@ class Game;
 class GameComponent {
 public:
     GameComponent(Game* inGame);
-    virtual ~GameComponent();
+    virtual ~GameComponent() = default;
 
     virtual void Initialize() = 0;
     virtual void Update(float deltaTime) = 0;

@@ -41,7 +41,7 @@ int main()
 
     if (!game.Initialize(&display))
     {
-        std::cout << "Failed to initialize the game engine!" << std::endl;
+        std::cout << "Failed to initialize the game engine!" << '\n';
         return 1;
     }
 

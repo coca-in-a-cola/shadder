@@ -24,8 +24,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> rastState;
 
-    ID3DBlob* vertexShaderByteCode;
-    ID3DBlob* pixelShaderByteCode;
+    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderByteCode;
+    Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderByteCode;
 
     DirectX::XMFLOAT4 points[8];
 };
