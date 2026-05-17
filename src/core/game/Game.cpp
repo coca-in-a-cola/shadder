@@ -66,7 +66,8 @@ bool Game::Initialize(DisplayWin32* inDisplay)
 
     // Создание InputDevice
     inputDevice = std::make_unique<InputDevice>(this);
-
+    // Auto‑register all components that have been linked via SHADDER_COMPONENT
+    ecsWorld.AutoRegisterFromRegistry();
     // Создание back buffer и render target view
     CreateBackBuffer();
 
@@ -161,6 +162,7 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 void Game::Update(float deltaTime)
 {
     UpdateInternal(deltaTime);
+    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::UPDATE, deltaTime);
     for (auto& comp : components)
     {
         comp->Update(deltaTime);
@@ -179,7 +181,12 @@ void Game::Draw()
     float color[] = { 0.1f, 0.1f, 0.1f, 1.0f };
     context->ClearRenderTargetView(renderTargetView.Get(), color);
 
-    // Отрисовка всех компонентов
+    // --- ECS Render Phases ---
+    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::PRE_RENDER, 0.0f);
+    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::RENDER, 0.0f);
+    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::POST_RENDER, 0.0f);
+
+    // Отрисовка legacy компонентов
     for (auto& comp : components)
     {
         comp->Draw();

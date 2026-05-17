@@ -91,6 +91,7 @@ sources = (
     [f'{BUILD_DIR}/main.cpp'] 
     + Glob(f'{BUILD_DIR}/core/*.cpp') 
     + Glob(f'{BUILD_DIR}/core/game/*.cpp')
+    + Glob(f'{BUILD_DIR}/core/ecs/**/*.cpp')
 )
 
 prog = env.Program(target=f'{BUILD_DIR}/{PROGRAMM_NAME}', source=sources)
