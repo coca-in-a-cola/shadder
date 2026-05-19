@@ -9,7 +9,7 @@
 #include <cassert>
 #include <array>
 
-namespace shadder::ecs {
+namespace shadder {
 
 class World {
 public:
@@ -222,4 +222,4 @@ inline void World::ForEach(F&& fn) {
     }
 }
 
-} // namespace shadder::ecs
+} // namespace shadder

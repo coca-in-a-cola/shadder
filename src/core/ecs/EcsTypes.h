@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace shadder::ecs {
+namespace shadder {
 
 using EntityIndex = uint32_t;
 using EntityGeneration = uint32_t;
@@ -20,4 +20,4 @@ struct Entity {
 using ComponentTypeID = uint32_t;
 constexpr ComponentTypeID INVALID_COMPONENT_TYPE = static_cast<ComponentTypeID>(-1);
 
-} // namespace shadder::ecs
+} // namespace shadder

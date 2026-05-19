@@ -4,7 +4,7 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-namespace shadder::ecs {
+namespace shadder {
 
 struct MeshComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(MeshComponent)
@@ -17,4 +17,4 @@ public:
     DXGI_FORMAT indexFormat = DXGI_FORMAT_R32_UINT;
 };
 
-} // namespace shadder::ecs
+} // namespace shadder

@@ -3,7 +3,7 @@
 #include "../../ecs/Component.h"
 #include <DirectXMath.h>
 
-namespace shadder::ecs {
+namespace shadder {
 
 struct Transform3D final : public ComponentBase {
     SHADDER_COMPONENT_HEADER(Transform3D)
@@ -13,4 +13,4 @@ public:
     DirectX::XMFLOAT3 scale{1.0f, 1.0f, 1.0f};
 };
 
-} // namespace shadder::ecs
+} // namespace shadder

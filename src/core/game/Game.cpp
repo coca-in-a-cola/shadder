@@ -162,11 +162,7 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 void Game::Update(float deltaTime)
 {
     UpdateInternal(deltaTime);
-    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::UPDATE, deltaTime);
-    for (auto& comp : components)
-    {
-        comp->Update(deltaTime);
-    }
+    ecsWorld.UpdateSystems(shadder::SystemPhase::UPDATE, deltaTime);
 }
 
 void Game::Draw()
@@ -182,15 +178,9 @@ void Game::Draw()
     context->ClearRenderTargetView(renderTargetView.Get(), color);
 
     // --- ECS Render Phases ---
-    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::PRE_RENDER, 0.0f);
-    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::RENDER, 0.0f);
-    ecsWorld.UpdateSystems(shadder::ecs::SystemPhase::POST_RENDER, 0.0f);
-
-    // Отрисовка legacy компонентов
-    for (auto& comp : components)
-    {
-        comp->Draw();
-    }
+    ecsWorld.UpdateSystems(shadder::SystemPhase::PRE_RENDER, 0.0f);
+    ecsWorld.UpdateSystems(shadder::SystemPhase::RENDER, 0.0f);
+    ecsWorld.UpdateSystems(shadder::SystemPhase::POST_RENDER, 0.0f);
 }
 
 void Game::EndFrame()
@@ -231,11 +221,6 @@ void Game::UpdateInternal(float deltaTime)
     // Внутреннее обновление
 }
 
-void Game::AddComponent(std::unique_ptr<GameComponent> component)
-{
-    components.push_back(std::move(component));
-}
-
 void Game::CreateBackBuffer()
 {
     if (!swapChain || !device || !context)
@@ -257,13 +242,6 @@ void Game::CreateBackBuffer()
 
 void Game::DestroyResources()
 {
-    // Уничтожение компонентов
-    for (auto& comp : components)
-    {
-        comp->DestroyResources();
-    }
-    components.clear();
-
     // Очистка D3D ресурсов
     context.Reset();
     renderTargetView.Reset();

@@ -1,6 +1,6 @@
 #include "MaterialComponent.h"
 #include "../Storage.h"
 
-namespace shadder::ecs {
+namespace shadder {
     SHADDER_COMPONENT_IMPL(MaterialComponent)
 }

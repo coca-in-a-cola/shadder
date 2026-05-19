@@ -10,7 +10,7 @@
 #include <array>
 #include <utility>
 
-namespace shadder::ecs {
+namespace shadder {
 
 // -----------------------------------------------------------------
 // Query: iterate over the intersection of multiple sparse sets.
@@ -101,4 +101,4 @@ private:
     }
 };
 
-} // namespace shadder::ecs
+} // namespace shadder

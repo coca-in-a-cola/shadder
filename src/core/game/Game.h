@@ -3,7 +3,6 @@
 #include "../InputDevice.h"
 #include "../DisplayWin32.h"
 #include "../ecs/World.h"
-#include "GameComponent.h"
 #include <chrono>
 #include <d3d11.h>
 #include <dxgi.h>
@@ -13,7 +12,6 @@
 #include <string>
 
 class Game {
-  friend class GameComponent;
   friend class InputDevice;
 
 public:
@@ -32,9 +30,6 @@ public:
   void Update(float deltaTime);
   void Draw();
 
-  // Компоненты
-  void AddComponent(std::unique_ptr<GameComponent> component);
-
   // Публичные геттеры
   [[nodiscard]] ID3D11Device* GetDevice() const { return device.Get(); }
   [[nodiscard]] ID3D11DeviceContext* GetContext() const { return context.Get(); }
@@ -42,8 +37,8 @@ public:
   [[nodiscard]] ID3D11RenderTargetView* GetRenderTargetView() const { return renderTargetView.Get(); }
   [[nodiscard]] InputDevice* GetInputDevice() const { return inputDevice.get(); }
   [[nodiscard]] DisplayWin32* GetDisplay() const { return display; }
-    [[nodiscard]] shadder::ecs::World& GetWorld() { return ecsWorld; }
-    [[nodiscard]] const shadder::ecs::World& GetWorld() const { return ecsWorld; }
+    [[nodiscard]] shadder::World& GetWorld() { return ecsWorld; }
+    [[nodiscard]] const shadder::World& GetWorld() const { return ecsWorld; }
   [[nodiscard]] HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
 
 protected:
@@ -63,13 +58,10 @@ protected:
   // Экран изменил размер
   virtual void ScreenResized(int width, int height);
 
-  // Имя приложения
-  // std::string name; // unused, commented out
-
   // Display (owned externally, not destroyed by Game)
     DisplayWin32* display;
     // ECS world – lives inside Game
-    shadder::ecs::World ecsWorld;
+    shadder::World ecsWorld;
 
   // D3D11 устройства
   Microsoft::WRL::ComPtr<ID3D11Device> device;
@@ -86,7 +78,4 @@ protected:
   std::chrono::time_point<std::chrono::steady_clock> startTime;
   float totalTime;
   unsigned int frameCount;
-
-  // Компоненты
-  std::vector<std::unique_ptr<GameComponent>> components;
 };

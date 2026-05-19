@@ -6,7 +6,6 @@
 
 #include "core/DisplayWin32.h"
 #include "core/game/Game.h"
-#include "core/game/TriangleComponent.h"
 #include "core/ecs/components/Transform3D.h"
 #include "core/ecs/components/MeshComponent.h"
 #include "core/ecs/components/MaterialComponent.h"
@@ -49,25 +48,20 @@ int main()
         return 1;
     }
 
-    // Create and add the legacy triangle component
-    auto triangle = std::make_unique<TriangleComponent>(&game);
-    triangle->Initialize();
-    game.AddComponent(std::move(triangle));
-
     // --- ECS triangle entity ------------------------------------------------
     auto& world = game.GetWorld();
-    world.RegisterSystem<shadder::ecs::RenderSystem>(shadder::ecs::SystemPhase::RENDER, &game);
+    world.RegisterSystem<shadder::RenderSystem>(shadder::SystemPhase::RENDER, &game);
 
-    shadder::ecs::Entity e = world.CreateEntity();
+    shadder::Entity e = world.CreateEntity();
 
     // Transform
-    auto& tr = world.AddComponent<shadder::ecs::Transform3D>(e);
+    auto& tr = world.AddComponent<shadder::Transform3D>(e);
     tr.position = { 0.0f, 0.0f, 0.0f };
     tr.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
     tr.scale    = { 1.0f, 1.0f, 1.0f };
 
     // Mesh
-    auto& mesh = world.AddComponent<shadder::ecs::MeshComponent>(e);
+    auto& mesh = world.AddComponent<shadder::MeshComponent>(e);
     DirectX::XMFLOAT4 points[8] = {
         { 0.5f,  0.5f, 0.5f, 1.0f}, { 1.0f,  0.0f, 0.0f, 1.0f},
         {-0.5f, -0.5f, 0.5f, 1.0f}, { 0.0f,  0.0f, 1.0f, 1.0f},
@@ -108,7 +102,7 @@ int main()
     mesh.indexFormat = DXGI_FORMAT_R32_UINT;
 
     // Material
-    auto& mat = world.AddComponent<shadder::ecs::MaterialComponent>(e);
+    auto& mat = world.AddComponent<shadder::MaterialComponent>(e);
 
     ID3DBlob* errorCode = nullptr;
     Microsoft::WRL::ComPtr<ID3DBlob> vsByteCode;

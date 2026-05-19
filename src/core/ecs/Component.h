@@ -6,7 +6,7 @@
 #include <functional>
 #include <string_view>
 
-namespace shadder::ecs {
+namespace shadder {
 
 // Forward declaration of storage class template
 template <class T>
@@ -58,7 +58,7 @@ std::unique_ptr<IComponentStorage> CreateStorageFor() {
 // Macro that goes into the component's header. Declares the static component_id and a name helper.
 #define SHADDER_COMPONENT_HEADER(Class)                          \
 public:                                                         \
-    static inline ::shadder::ecs::ComponentTypeID component_id = ::shadder::ecs::INVALID_COMPONENT_TYPE; \
+    static inline ::shadder::ComponentTypeID component_id = ::shadder::INVALID_COMPONENT_TYPE; \
     static constexpr const char* ComponentName() noexcept { return #Class; } \
 private:
 
@@ -67,10 +67,10 @@ private:
 namespace {                                                                       \
     struct Class##_Registrator {                                                 \
         Class##_Registrator() {                                                  \
-            ::shadder::ecs::ComponentRegistry::Instance().Register({            \
+            ::shadder::ComponentRegistry::Instance().Register({            \
                 &Class::component_id,                                          \
-                []() -> std::unique_ptr<::shadder::ecs::IComponentStorage> {   \
-                    return ::shadder::ecs::CreateStorageFor<Class>();           \
+                []() -> std::unique_ptr<::shadder::IComponentStorage> {   \
+                    return ::shadder::CreateStorageFor<Class>();           \
                 },                                                             \
                 Class::ComponentName()                                         \
             });                                                                  \
@@ -79,4 +79,4 @@ namespace {                                                                     
     static Class##_Registrator g_##Class##_registrator;                         \
 }
 
-} // namespace shadder::ecs
+} // namespace shadder

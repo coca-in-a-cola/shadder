@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-namespace shadder::ecs {
+namespace shadder {
 
 class World;
 
@@ -22,4 +22,4 @@ public:
     virtual void OnUpdate(World& world, float deltaTime) = 0;
 };
 
-} // namespace shadder::ecs
+} // namespace shadder

@@ -6,7 +6,7 @@
 #include "../../game/Game.h"
 #include <iostream>
 
-namespace shadder::ecs {
+namespace shadder {
 
 void RenderSystem::OnUpdate(World& world, float /*deltaTime*/) {
     if (!game_) return;
@@ -36,4 +36,4 @@ void RenderSystem::OnUpdate(World& world, float /*deltaTime*/) {
     });
 }
 
-} // namespace shadder::ecs
+} // namespace shadder

@@ -4,7 +4,7 @@
 
 class Game;
 
-namespace shadder::ecs {
+namespace shadder {
 
 class RenderSystem : public ISystem {
     Game* game_;
@@ -13,4 +13,4 @@ public:
     void OnUpdate(World& world, float deltaTime) override;
 };
 
-} // namespace shadder::ecs
+} // namespace shadder

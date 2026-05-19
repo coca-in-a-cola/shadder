@@ -1,6 +1,6 @@
 #include "Transform3D.h"
 #include "../Storage.h"
 
-namespace shadder::ecs {
+namespace shadder {
     SHADDER_COMPONENT_IMPL(Transform3D)
 }
