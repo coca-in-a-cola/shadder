@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Component.h"
-#include "Storage.h"
-#include "World.h"
+#include "ecs/Component.h"
+#include "ecs/Storage.h"
+#include "ecs/World.h"
 
 #include <tuple>
 #include <type_traits>

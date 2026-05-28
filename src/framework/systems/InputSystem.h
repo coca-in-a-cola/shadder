@@ -1,5 +1,7 @@
 #pragma once
-#include "core/ecs/System.h"
+#include "ecs/System.h"
+
+class Game;
 
 namespace shadder {
 

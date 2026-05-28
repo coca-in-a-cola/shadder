@@ -1,23 +1,22 @@
 #include "dev/input/InputDevice.h"
-#include "framework/game/Game.h"
 #include <iostream>
 
 using namespace DirectX::SimpleMath;
 
 
-InputDevice::InputDevice(Game* inGame) : game(inGame)
+InputDevice::InputDevice(HWND hwnd) : hwnd_(hwnd)
 {
 	RAWINPUTDEVICE Rid[2];
 
 	Rid[0].usUsagePage = 0x01;
 	Rid[0].usUsage = 0x02;
-	Rid[0].dwFlags = 0;   // adds HID mouse and also ignores legacy mouse messages
-	Rid[0].hwndTarget = game->GetHWnd();
+	Rid[0].dwFlags = 0;
+	Rid[0].hwndTarget = hwnd_;
 
 	Rid[1].usUsagePage = 0x01;
 	Rid[1].usUsage = 0x06;
-	Rid[1].dwFlags = 0;   // adds HID keyboard and also ignores legacy keyboard messages
-	Rid[1].hwndTarget = game->GetHWnd();
+	Rid[1].dwFlags = 0;
+	Rid[1].hwndTarget = hwnd_;
 
 	if (RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
 	{
@@ -61,7 +60,7 @@ void InputDevice::OnMouseMove(RawMouseEventArgs args)
 
 	POINT p;
 	GetCursorPos(&p);
-	ScreenToClient(game->GetHWnd(), &p);
+	ScreenToClient(hwnd_, &p);
 	
 	MousePosition	= Vector2(p.x, p.y);
 	MouseOffset		= Vector2(args.X, args.Y);
@@ -69,21 +68,11 @@ void InputDevice::OnMouseMove(RawMouseEventArgs args)
 
 	const MouseMoveEventArgs moveArgs = {MousePosition, MouseOffset, MouseWheelDelta};
 
-	//printf(" Mouse: posX=%04.4f posY:%04.4f offsetX:%04.4f offsetY:%04.4f, wheelDelta=%04d \n",
-	//	MousePosition.x,
-	//	MousePosition.y,
-	//	MouseOffset.x,
-	//	MouseOffset.y,
-	//	MouseWheelDelta);
-	
 	MouseMove.Broadcast(moveArgs);
 }
 
 void InputDevice::AddPressedKey(Keys key)
 {
-	//if (!game->isActive) {
-	//	return;
-	//}
 	keys.insert(key);
 }
 
@@ -96,4 +85,3 @@ bool InputDevice::IsKeyDown(Keys key)
 {
 	return keys.count(key);
 }
-

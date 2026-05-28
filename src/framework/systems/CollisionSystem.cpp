@@ -1,5 +1,5 @@
-#include "CollisionSystem.h"
-#include "core/ecs/Query.h"
+#include "framework/systems/CollisionSystem.h"
+#include "ecs/Query.h"
 #include "framework/components/Transform3D.h"
 #include "framework/components/ColliderComponent.h"
 #include <vector>

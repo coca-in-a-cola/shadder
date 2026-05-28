@@ -2,7 +2,7 @@
 
 #include "dev/input/InputDevice.h"
 #include "dev/display/DisplayWin32.h"
-#include "core/ecs/World.h"
+#include "ecs/World.h"
 #include <chrono>
 #include <d3d11.h>
 #include <dxgi.h>
@@ -12,8 +12,6 @@
 #include <string>
 
 class Game {
-  friend class InputDevice;
-
 public:
   Game();
   virtual ~Game();

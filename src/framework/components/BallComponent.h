@@ -1,5 +1,5 @@
 #pragma once
-#include "core/ecs/Component.h"
+#include "ecs/Component.h"
 
 namespace shadder {
 

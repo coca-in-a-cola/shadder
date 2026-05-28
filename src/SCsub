@@ -1,0 +1,11 @@
+# src/SCsub — top-level source root
+# Recurses into every child module in dependency order.
+Import("env")
+
+SConscript([
+    "main/SCsub",
+    "shared/SCsub",
+    "ecs/SCsub",
+    "dev/SCsub",
+    "framework/SCsub",
+], exports={"env": env})

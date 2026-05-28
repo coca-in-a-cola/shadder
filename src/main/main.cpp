@@ -4,12 +4,12 @@
 #include <iostream>
 #include <memory>
 
-#include "core/DisplayWin32.h"
-#include "core/game/Game.h"
-#include "core/ecs/components/Transform3D.h"
-#include "core/ecs/components/MeshComponent.h"
-#include "core/ecs/components/MaterialComponent.h"
-#include "core/ecs/systems/RenderSystem.h"
+#include "dev/display/DisplayWin32.h"
+#include "framework/game/Game.h"
+#include "framework/components/Transform3D.h"
+#include "framework/components/MeshComponent.h"
+#include "framework/components/MaterialComponent.h"
+#include "framework/systems/RenderSystem.h"
 
 // Global game pointer for the window procedure
 Game* g_Game = nullptr;

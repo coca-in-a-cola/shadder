@@ -1,5 +1,5 @@
-#include "MovementSystem.h"
-#include "core/ecs/Query.h"
+#include "framework/systems/MovementSystem.h"
+#include "ecs/Query.h"
 #include "framework/components/Transform3D.h"
 #include "framework/components/VelocityComponent.h"
 #include <DirectXMath.h>

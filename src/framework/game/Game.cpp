@@ -65,7 +65,7 @@ bool Game::Initialize(DisplayWin32* inDisplay)
     }
 
     // Создание InputDevice
-    inputDevice = std::make_unique<InputDevice>(this);
+    inputDevice = std::make_unique<InputDevice>(display->hWnd);
     // Auto‑register all components that have been linked via SHADDER_COMPONENT
     ecsWorld.AutoRegisterFromRegistry();
     // Создание back buffer и render target view

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ecs/Component.h"
+#include "ecs/Component.h"
 #include <DirectXMath.h>
 
 namespace shadder {

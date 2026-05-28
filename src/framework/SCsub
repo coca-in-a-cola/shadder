@@ -1,0 +1,8 @@
+# src/framework/SCsub — gameplay framework (components, systems, game loop)
+Import("env")
+
+SConscript([
+    "components/SCsub",
+    "systems/SCsub",
+    "game/SCsub",
+], exports={"env": env})

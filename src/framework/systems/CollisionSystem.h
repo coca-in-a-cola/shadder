@@ -1,5 +1,6 @@
 #pragma once
-#include "core/ecs/System.h"
+#include "ecs/System.h"
+#include "ecs/EcsTypes.h"
 #include "shared/delegates/Delegates.h"
 
 namespace shadder {

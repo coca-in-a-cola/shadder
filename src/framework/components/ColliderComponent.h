@@ -1,5 +1,5 @@
 #pragma once
-#include "core/ecs/Component.h"
+#include "ecs/Component.h"
 #include <DirectXMath.h>
 
 namespace shadder {
@@ -7,6 +7,7 @@ namespace shadder {
 struct ColliderComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(ColliderComponent)
 
+public:
     // Half-extents for AABB (x,y for 2D, z ignored for Pong)
     DirectX::XMFLOAT3 halfExtents = {0.5f, 0.5f, 0.0f};
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EcsTypes.h"
-#include "Component.h"
-#include "Storage.h"
-#include "System.h"
+#include "ecs/EcsTypes.h"
+#include "ecs/Component.h"
+#include "ecs/Storage.h"
+#include "ecs/System.h"
 #include <vector>
 #include <memory>
 #include <cassert>

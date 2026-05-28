@@ -1,5 +1,5 @@
-#include "RenderSystem.h"
-#include "core/ecs/Query.h"
+#include "framework/systems/RenderSystem.h"
+#include "ecs/Query.h"
 #include "framework/components/Transform3D.h"
 #include "framework/components/MeshComponent.h"
 #include "framework/components/MaterialComponent.h"

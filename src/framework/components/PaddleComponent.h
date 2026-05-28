@@ -1,10 +1,11 @@
 #pragma once
-#include "core/ecs/Component.h"
+#include "ecs/Component.h"
 
 namespace shadder {
 
 struct PaddleComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(PaddleComponent)
+public:
     int playerID = 0; // 0 = left, 1 = right
 };
 

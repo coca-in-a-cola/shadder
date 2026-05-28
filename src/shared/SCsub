@@ -1,0 +1,7 @@
+# src/shared/SCsub — shared utilities (delegates, keycodes)
+Import("env")
+
+SConscript([
+    "delegates/SCsub",
+    "keycodes/SCsub",
+], exports={"env": env})

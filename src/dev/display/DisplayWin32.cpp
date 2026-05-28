@@ -1,4 +1,4 @@
-#include "DisplayWin32.h"
+#include "dev/display/DisplayWin32.h"
 
 DisplayWin32::DisplayWin32(LPCWSTR applicationName, HINSTANCE hInst, int screenWidth, int screenHeight, WNDPROC wndProc)
     : hInstance(hInst)
