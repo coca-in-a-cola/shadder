@@ -162,7 +162,7 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 void Game::Update(float deltaTime)
 {
     UpdateInternal(deltaTime);
-    ecsWorld.UpdateSystems(shadder::SystemPhase::UPDATE, deltaTime);
+    ecsWorld.UpdateSystems(SystemPhase::UPDATE, deltaTime);
 }
 
 void Game::Draw()
@@ -178,9 +178,9 @@ void Game::Draw()
     context->ClearRenderTargetView(renderTargetView.Get(), color);
 
     // --- ECS Render Phases ---
-    ecsWorld.UpdateSystems(shadder::SystemPhase::PRE_RENDER, 0.0f);
-    ecsWorld.UpdateSystems(shadder::SystemPhase::RENDER, 0.0f);
-    ecsWorld.UpdateSystems(shadder::SystemPhase::POST_RENDER, 0.0f);
+    ecsWorld.UpdateSystems(SystemPhase::PRE_RENDER, 0.0f);
+    ecsWorld.UpdateSystems(SystemPhase::RENDER, 0.0f);
+    ecsWorld.UpdateSystems(SystemPhase::POST_RENDER, 0.0f);
 }
 
 void Game::EndFrame()

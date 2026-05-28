@@ -3,7 +3,7 @@ import os
 import urllib.request
 import zipfile
 
-BUILD_DIR = 'build'
+BUILD_DIR = 'bin'
 PROGRAMM_NAME = 'SuperShadder'
 
 # ---------------------------------------------------------

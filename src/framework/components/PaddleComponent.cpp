@@ -1,5 +1,4 @@
 #include "framework/components/PaddleComponent.h"
 #include "ecs/Storage.h"
 
-    SHADDER_COMPONENT_IMPL(PaddleComponent);
-}
+SHADDER_COMPONENT_IMPL(PaddleComponent);

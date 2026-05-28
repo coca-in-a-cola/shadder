@@ -35,8 +35,8 @@ public:
   [[nodiscard]] ID3D11RenderTargetView* GetRenderTargetView() const { return renderTargetView.Get(); }
   [[nodiscard]] InputDevice* GetInputDevice() const { return inputDevice.get(); }
   [[nodiscard]] DisplayWin32* GetDisplay() const { return display; }
-    [[nodiscard]] shadder::World& GetWorld() { return ecsWorld; }
-    [[nodiscard]] const shadder::World& GetWorld() const { return ecsWorld; }
+    [[nodiscard]] World& GetWorld() { return ecsWorld; }
+    [[nodiscard]] const World& GetWorld() const { return ecsWorld; }
   [[nodiscard]] HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
 
 protected:
@@ -59,7 +59,7 @@ protected:
   // Display (owned externally, not destroyed by Game)
     DisplayWin32* display;
     // ECS world – lives inside Game
-    shadder::World ecsWorld;
+    World ecsWorld;
 
   // D3D11 устройства
   Microsoft::WRL::ComPtr<ID3D11Device> device;

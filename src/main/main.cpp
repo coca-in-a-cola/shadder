@@ -50,18 +50,18 @@ int main()
 
     // --- ECS triangle entity ------------------------------------------------
     auto& world = game.GetWorld();
-    world.RegisterSystem<shadder::RenderSystem>(shadder::SystemPhase::RENDER, &game);
+    world.RegisterSystem<RenderSystem>(SystemPhase::RENDER, &game);
 
-    shadder::Entity e = world.CreateEntity();
+    Entity e = world.CreateEntity();
 
     // Transform
-    auto& tr = world.AddComponent<shadder::Transform3D>(e);
+    auto& tr = world.AddComponent<Transform3D>(e);
     tr.position = { 0.0f, 0.0f, 0.0f };
     tr.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
     tr.scale    = { 1.0f, 1.0f, 1.0f };
 
     // Mesh
-    auto& mesh = world.AddComponent<shadder::MeshComponent>(e);
+    auto& mesh = world.AddComponent<MeshComponent>(e);
     DirectX::XMFLOAT4 points[8] = {
         { 0.5f,  0.5f, 0.5f, 1.0f}, { 1.0f,  0.0f, 0.0f, 1.0f},
         {-0.5f, -0.5f, 0.5f, 1.0f}, { 0.0f,  0.0f, 1.0f, 1.0f},
@@ -102,7 +102,7 @@ int main()
     mesh.indexFormat = DXGI_FORMAT_R32_UINT;
 
     // Material
-    auto& mat = world.AddComponent<shadder::MaterialComponent>(e);
+    auto& mat = world.AddComponent<MaterialComponent>(e);
 
     ID3DBlob* errorCode = nullptr;
     Microsoft::WRL::ComPtr<ID3DBlob> vsByteCode;
