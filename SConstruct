@@ -67,6 +67,16 @@ env = Environment(
     TARGET_ARCH='x86_64',
 )
 
+# ---------------------------------------------------------
+# 2a. WINDOWS TOOLCHAIN  (Platform-Specific)
+# ---------------------------------------------------------
+# Use clang-cl instead of MSVC cl.exe so that the generated
+# compile_commands.json is consumable by clangd / clang-tidy.
+# Other platforms would configure gcc/clang here.
+env['CC'] = 'clang-cl'
+env['CXX'] = 'clang-cl'
+# Linker: keep the MSVC link.exe default on Windows.
+
 # Single include root — all headers are addressed as "module/file.h"
 env.Append(CPPPATH=[
     '#/src',
@@ -114,15 +124,11 @@ opts.Update(env)
 
 if env["compiledb"]:
     env.Tool("compilation_db")
-    env.NoCache(env.CompilationDatabase())
+    compiledb = env.CompilationDatabase(target="compile_commands.json")
+    env.NoCache(compiledb)
+    env.Default(compiledb)          # ensure it actually builds
     if not env["verbose"]:
         env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
-
-if env["compiledb"] and env["compiledb_gen_only"]:
-    from SCons.Tool.compilation_db import write_compilation_db
-
-    write_compilation_db([env.File("compile_commands.json")], [], env)
-    env.Exit()
 
 # Kick off the recursive module walk starting from build/SCsub
 # (VariantDir maps build/ -> src/, so build/SCsub is src/SCsub)
@@ -138,3 +144,10 @@ prog = env.Program(
 
 # Convenience alias
 Default(prog)
+
+# After the build graph is fully populated, write the compilation DB and exit
+# if we only want the DB without compiling.
+if env["compiledb"] and env["compiledb_gen_only"]:
+    from SCons.Tool.compilation_db import write_compilation_db
+    write_compilation_db([env.File("compile_commands.json")], [], env)
+    env.Exit()
