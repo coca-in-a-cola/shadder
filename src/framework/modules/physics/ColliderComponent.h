@@ -1,10 +1,11 @@
 #pragma once
+
 #include "ecs/Component.h"
 #include <DirectXMath.h>
 
-
 struct ColliderComponent : public ComponentBase {
-    SHADDER_COMPONENT_HEADER(ColliderComponent)
+    static inline ComponentTypeID component_id = INVALID_COMPONENT_TYPE;
+    static constexpr const char* ComponentName() noexcept { return "ColliderComponent"; }
 
 public:
     // Half-extents for AABB (x,y for 2D, z ignored for Pong)
@@ -14,5 +15,3 @@ public:
     ColliderComponent(float halfWidth, float halfHeight)
         : halfExtents(halfWidth, halfHeight, 0.0f) {}
 };
-
-

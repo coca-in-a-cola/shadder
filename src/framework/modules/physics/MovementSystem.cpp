@@ -1,9 +1,8 @@
-#include "framework/systems/MovementSystem.h"
+#include "framework/modules/physics/MovementSystem.h"
 #include "ecs/Query.h"
-#include "framework/components/Transform3D.h"
-#include "framework/components/VelocityComponent.h"
+#include "framework/modules/transform/Transform3D.h"
+#include "framework/modules/physics/VelocityComponent.h"
 #include <DirectXMath.h>
-
 
 void MovementSystem::OnUpdate(World& world, float deltaTime) {
     Query<Transform3D, VelocityComponent> q(world);
@@ -15,5 +14,3 @@ void MovementSystem::OnUpdate(World& world, float deltaTime) {
         XMStoreFloat3(&tr.position, pos);
     });
 }
-
-

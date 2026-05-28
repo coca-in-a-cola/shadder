@@ -6,10 +6,10 @@
 
 #include "dev/display/DisplayWin32.h"
 #include "framework/game/Game.h"
-#include "framework/components/Transform3D.h"
-#include "framework/components/MeshComponent.h"
-#include "framework/components/MaterialComponent.h"
-#include "framework/systems/RenderSystem.h"
+#include "framework/modules/transform/Transform3D.h"
+#include "framework/modules/render/MeshComponent.h"
+#include "framework/modules/render/MaterialComponent.h"
+#include "framework/modules/render/RenderSystem.h"
 
 // Global game pointer for the window procedure
 Game* g_Game = nullptr;

@@ -1,9 +1,8 @@
-#include "framework/systems/CollisionSystem.h"
+#include "framework/modules/physics/CollisionSystem.h"
 #include "ecs/Query.h"
-#include "framework/components/Transform3D.h"
-#include "framework/components/ColliderComponent.h"
+#include "framework/modules/transform/Transform3D.h"
+#include "framework/modules/physics/ColliderComponent.h"
 #include <vector>
-
 
 void CollisionSystem::OnUpdate(World& world, float) {
     std::vector<Entity> entities;
@@ -38,5 +37,3 @@ void CollisionSystem::OnUpdate(World& world, float) {
         }
     }
 }
-
-

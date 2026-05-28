@@ -1,19 +1,14 @@
 #pragma once
 
-// Components
-#include "framework/components/Transform3D.h"
-#include "framework/components/MeshComponent.h"
-#include "framework/components/MaterialComponent.h"
-#include "framework/components/VelocityComponent.h"
-#include "framework/components/ColliderComponent.h"
-#include "framework/components/PaddleComponent.h"
-#include "framework/components/BallComponent.h"
-
-// Systems
-#include "framework/systems/RenderSystem.h"
-#include "framework/systems/MovementSystem.h"
-#include "framework/systems/CollisionSystem.h"
-#include "framework/systems/InputSystem.h"
+// Modules
+#include "framework/modules/transform/Transform3D.h"
+#include "framework/modules/render/MeshComponent.h"
+#include "framework/modules/render/MaterialComponent.h"
+#include "framework/modules/render/RenderSystem.h"
+#include "framework/modules/physics/VelocityComponent.h"
+#include "framework/modules/physics/ColliderComponent.h"
+#include "framework/modules/physics/MovementSystem.h"
+#include "framework/modules/physics/CollisionSystem.h"
 
 // Game
 #include "framework/game/Game.h"

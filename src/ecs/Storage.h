@@ -68,7 +68,7 @@ public:
     size_t Size() const override { return dense_.size(); }
     T& AtDense(size_t idx) { return dense_[idx]; }
     const T& AtDense(size_t idx) const { return dense_[idx]; }
-    EntityIndex EntityAtDense(size_t idx) const { return dense_entities_[idx]; }
+    EntityIndex EntityAtDense(size_t idx) const override { return dense_entities_[idx]; }
 
 private:
     static constexpr uint32_t INVALID_INDEX = static_cast<uint32_t>(-1);

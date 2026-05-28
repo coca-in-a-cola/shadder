@@ -1,0 +1,6 @@
+# src/framework/modules/physics/SCsub — physics module
+Import("env")
+
+env.add_source_files(env.module_sources, "register_types.cpp")
+env.add_source_files(env.module_sources, "MovementSystem.cpp")
+env.add_source_files(env.module_sources, "CollisionSystem.cpp")

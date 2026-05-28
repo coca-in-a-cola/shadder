@@ -1,4 +1,0 @@
-# src/framework/components/SCsub — gameplay ECS components
-Import("env")
-
-env.add_source_files(env.module_sources, "*.cpp")

@@ -52,27 +52,3 @@ std::unique_ptr<IComponentStorage> CreateStorageFor() {
     // Directly allocate the concrete storage and up‑cast the unique_ptr.
     return std::unique_ptr<IComponentStorage>(new SparseSetStorage<T>());
 }
-
-// Macro that goes into the component's header. Declares the static component_id and a name helper.
-#define SHADDER_COMPONENT_HEADER(Class)                          \
-public:                                                         \
-    static inline ComponentTypeID component_id = INVALID_COMPONENT_TYPE; \
-    static constexpr const char* ComponentName() noexcept { return #Class; } \
-private:
-
-// Macro that goes into the component's .cpp file. Instantiates the registrar that pushes the factory into the global registry.
-#define SHADDER_COMPONENT_IMPL(Class)                                   \
-namespace {                                                                       \
-    struct Class##_Registrator {                                                 \
-        Class##_Registrator() {                                                  \
-            ComponentRegistry::Instance().Register({            \
-                &Class::component_id,                                          \
-                []() -> std::unique_ptr<IComponentStorage> {   \
-                    return CreateStorageFor<Class>();           \
-                },                                                             \
-                Class::ComponentName()                                         \
-            });                                                                  \
-        }                                                                       \
-    };                                                                          \
-    static Class##_Registrator g_##Class##_registrator;                         \
-}

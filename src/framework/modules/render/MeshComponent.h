@@ -4,9 +4,10 @@
 #include <d3d11.h>
 #include <wrl.h>
 
-
 struct MeshComponent : public ComponentBase {
-    SHADDER_COMPONENT_HEADER(MeshComponent)
+    static inline ComponentTypeID component_id = INVALID_COMPONENT_TYPE;
+    static constexpr const char* ComponentName() noexcept { return "MeshComponent"; }
+
 public:
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
@@ -15,5 +16,3 @@ public:
     uint32_t vertexStride = 0;
     DXGI_FORMAT indexFormat = DXGI_FORMAT_R32_UINT;
 };
-
-
