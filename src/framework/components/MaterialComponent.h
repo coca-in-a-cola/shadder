@@ -5,7 +5,6 @@
 #include <d3dcompiler.h>
 #include <wrl.h>
 
-namespace shadder {
 
 struct MaterialComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(MaterialComponent)
@@ -17,4 +16,4 @@ public:
     // future: texture, constant buffer
 };
 
-} // namespace shadder
+

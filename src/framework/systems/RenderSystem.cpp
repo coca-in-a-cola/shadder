@@ -7,7 +7,6 @@
 #include "dev/display/DisplayWin32.h"
 #include <DirectXMath.h>
 
-namespace shadder {
 
 void RenderSystem::OnUpdate(World& world, float) {
     if (!game_) return;
@@ -60,4 +59,4 @@ void RenderSystem::OnUpdate(World& world, float) {
     });
 }
 
-} // namespace shadder
+

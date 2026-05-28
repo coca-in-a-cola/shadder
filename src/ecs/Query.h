@@ -10,7 +10,6 @@
 #include <array>
 #include <utility>
 
-namespace shadder {
 
 // -----------------------------------------------------------------
 // Query: iterate over the intersection of multiple sparse sets.
@@ -101,4 +100,4 @@ private:
     }
 };
 
-} // namespace shadder
+

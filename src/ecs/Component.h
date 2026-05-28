@@ -1,12 +1,10 @@
 #pragma once
 
-#include "ecs/EcsTypes.h"
+#include "EcsTypes.h"
 #include <memory>
 #include <vector>
 #include <functional>
 #include <string_view>
-
-namespace shadder {
 
 // Forward declaration of storage class template
 template <class T>
@@ -78,5 +76,3 @@ namespace {                                                                     
     };                                                                          \
     static Class##_Registrator g_##Class##_registrator;                         \
 }
-
-} // namespace shadder

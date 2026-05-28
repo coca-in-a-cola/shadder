@@ -4,7 +4,6 @@
 #include "framework/components/VelocityComponent.h"
 #include <DirectXMath.h>
 
-namespace shadder {
 
 void MovementSystem::OnUpdate(World& world, float deltaTime) {
     Query<Transform3D, VelocityComponent> q(world);
@@ -17,4 +16,4 @@ void MovementSystem::OnUpdate(World& world, float deltaTime) {
     });
 }
 
-} // namespace shadder
+

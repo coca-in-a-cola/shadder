@@ -6,7 +6,6 @@
 #include "framework/components/PaddleComponent.h"
 #include "framework/components/VelocityComponent.h"
 
-namespace shadder {
 
 void InputSystem::OnUpdate(World& world, float) {
     if (!game_) return;
@@ -28,4 +27,4 @@ void InputSystem::OnUpdate(World& world, float) {
     });
 }
 
-} // namespace shadder
+

@@ -3,7 +3,6 @@
 
 class Game;
 
-namespace shadder {
 
 class InputSystem : public ISystem {
     Game* game_;
@@ -12,4 +11,4 @@ public:
     void OnUpdate(World& world, float deltaTime) override;
 };
 
-} // namespace shadder
+

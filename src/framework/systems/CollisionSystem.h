@@ -3,7 +3,6 @@
 #include "ecs/EcsTypes.h"
 #include "shared/delegates/Delegates.h"
 
-namespace shadder {
 
 class CollisionSystem : public ISystem {
 public:
@@ -11,4 +10,4 @@ public:
     void OnUpdate(World& world, float deltaTime) override;
 };
 
-} // namespace shadder
+

@@ -2,7 +2,6 @@
 #include "ecs/Component.h"
 #include <DirectXMath.h>
 
-namespace shadder {
 
 struct VelocityComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(VelocityComponent)
@@ -14,4 +13,4 @@ public:
     explicit VelocityComponent(const DirectX::XMFLOAT3& vel) : velocity(vel) {}
 };
 
-} // namespace shadder
+

@@ -7,6 +7,24 @@ BUILD_DIR = 'build'
 PROGRAMM_NAME = 'SuperShadder'
 
 # ---------------------------------------------------------
+# 0. BUILD OPTIONS (The Godot Way)
+# ---------------------------------------------------------
+customs = ["custom.py"]
+
+profile = ARGUMENTS.get("profile", "")
+if profile:
+    if os.path.isfile(profile):
+        customs.append(profile)
+    elif os.path.isfile(profile + ".py"):
+        customs.append(profile + ".py")
+
+opts = Variables(customs, ARGUMENTS)
+
+opts.Add(BoolVariable("verbose", "Enable verbose output for the compilation", False))
+opts.Add(BoolVariable("compiledb", "Generate compilation DB (`compile_commands.json`) for external tools", False))
+opts.Add(BoolVariable("compiledb_gen_only", "Exit after building the compilation database", False))
+
+# ---------------------------------------------------------
 # 1. THIRDPARTY MANAGER (The Godot Way)
 # ---------------------------------------------------------
 def fetch_directxtk():
@@ -89,6 +107,22 @@ env.AddMethod(add_source_files, "add_source_files")
 
 # Shared list that every SCsub will append to
 env.module_sources = []
+
+# Update the environment to have all above options defined
+# in following code (especially platform and custom_modules).
+opts.Update(env)
+
+if env["compiledb"]:
+    env.Tool("compilation_db")
+    env.NoCache(env.CompilationDatabase())
+    if not env["verbose"]:
+        env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
+
+if env["compiledb"] and env["compiledb_gen_only"]:
+    from SCons.Tool.compilation_db import write_compilation_db
+
+    write_compilation_db([env.File("compile_commands.json")], [], env)
+    env.Exit()
 
 # Kick off the recursive module walk starting from build/SCsub
 # (VariantDir maps build/ -> src/, so build/SCsub is src/SCsub)

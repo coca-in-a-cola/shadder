@@ -2,7 +2,6 @@
 #include "ecs/Component.h"
 #include <DirectXMath.h>
 
-namespace shadder {
 
 struct ColliderComponent : public ComponentBase {
     SHADDER_COMPONENT_HEADER(ColliderComponent)
@@ -16,4 +15,4 @@ public:
         : halfExtents(halfWidth, halfHeight, 0.0f) {}
 };
 
-} // namespace shadder
+

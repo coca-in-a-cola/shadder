@@ -1,15 +1,13 @@
 #pragma once
 
-#include "ecs/EcsTypes.h"
-#include "ecs/Component.h"
-#include "ecs/Storage.h"
-#include "ecs/System.h"
+#include "Component.h"
+#include "Storage.h"
+#include "System.h"
 #include <vector>
 #include <memory>
 #include <cassert>
 #include <array>
 
-namespace shadder {
 
 class World {
 public:
@@ -222,4 +220,4 @@ inline void World::ForEach(F&& fn) {
     }
 }
 
-} // namespace shadder
+

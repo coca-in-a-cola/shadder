@@ -4,7 +4,6 @@
 #include "framework/components/ColliderComponent.h"
 #include <vector>
 
-namespace shadder {
 
 void CollisionSystem::OnUpdate(World& world, float) {
     std::vector<Entity> entities;
@@ -40,4 +39,4 @@ void CollisionSystem::OnUpdate(World& world, float) {
     }
 }
 
-} // namespace shadder
+

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "ecs/Component.h"
+#include "Component.h"
 #include <vector>
 #include <cstddef>
 #include <algorithm>
 
-namespace shadder {
 
 // -----------------------------------------------------------------------------
 // SparseSetStorage – dense array of components + sparse array mapping entity index -> dense index.
@@ -78,4 +77,4 @@ private:
     std::vector<uint32_t> sparse_;         // sparse mapping entity -> dense index (or INVALID_INDEX)
 };
 
-} // namespace shadder
+

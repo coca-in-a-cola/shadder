@@ -3,9 +3,4 @@ Import("env")
 
 # ECS core is header-only (World, Query, Storage, Component, System, EcsTypes).
 # Recurse into subfolders for any concrete implementations.
-SConscript([
-    "components/SCsub",
-    "systems/SCsub",
-], exports={"env": env})
-
 env.add_source_files(env.module_sources, "*.cpp")
