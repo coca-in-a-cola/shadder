@@ -1,22 +1,13 @@
 #include "register_types.h"
-#include "ecs/Component.h"
-#include "ecs/Storage.h"
+#include "ecs/World.h"
 #include "MeshComponent.h"
 #include "MaterialComponent.h"
 
-void initialize_render_module() {
-    ComponentRegistry::Instance().Register({
-        &MeshComponent::component_id,
-        []() -> std::unique_ptr<IComponentStorage> { return CreateStorageFor<MeshComponent>(); },
-        MeshComponent::ComponentName()
-    });
-    ComponentRegistry::Instance().Register({
-        &MaterialComponent::component_id,
-        []() -> std::unique_ptr<IComponentStorage> { return CreateStorageFor<MaterialComponent>(); },
-        MaterialComponent::ComponentName()
-    });
+void initialize_render_module(World& world) {
+    world.RegisterComponent<MeshComponent>();
+    world.RegisterComponent<MaterialComponent>();
 }
 
-void uninitialize_render_module() {
+void uninitialize_render_module(World& /*world*/) {
     // No-op for now.
 }

@@ -6,9 +6,6 @@
 #include <wrl.h>
 
 struct MaterialComponent : public ComponentBase {
-    static inline ComponentTypeID component_id = INVALID_COMPONENT_TYPE;
-    static constexpr const char* ComponentName() noexcept { return "MaterialComponent"; }
-
 public:
     Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;

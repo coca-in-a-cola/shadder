@@ -1,4 +1,6 @@
 #pragma once
 
-void initialize_render_module();
-void uninitialize_render_module();
+class World;
+
+void initialize_render_module(World& world);
+void uninitialize_render_module(World& world);

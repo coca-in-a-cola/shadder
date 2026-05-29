@@ -1,4 +1,6 @@
 #pragma once
 
-void initialize_transform_module();
-void uninitialize_transform_module();
+class World;
+
+void initialize_transform_module(World& world);
+void uninitialize_transform_module(World& world);

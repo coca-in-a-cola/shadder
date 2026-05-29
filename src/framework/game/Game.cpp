@@ -72,12 +72,9 @@ bool Game::Initialize(DisplayWin32* inDisplay)
     inputDevice = std::make_unique<InputDevice>(display->hWnd);
 
     // Initialize ECS modules explicitly (Godot-style)
-    initialize_transform_module();
-    initialize_render_module();
-    initialize_physics_module();
-
-    // Register all components that have been linked via module initializers
-    ecsWorld.AutoRegisterFromRegistry();
+    initialize_transform_module(ecsWorld);
+    initialize_render_module(ecsWorld);
+    initialize_physics_module(ecsWorld);
 
     // Создание back buffer и render target view
     CreateBackBuffer();

@@ -1,16 +1,11 @@
 #include "register_types.h"
-#include "ecs/Component.h"
-#include "ecs/Storage.h"
+#include "ecs/World.h"
 #include "Transform3D.h"
 
-void initialize_transform_module() {
-    ComponentRegistry::Instance().Register({
-        &Transform3D::component_id,
-        []() -> std::unique_ptr<IComponentStorage> { return CreateStorageFor<Transform3D>(); },
-        Transform3D::ComponentName()
-    });
+void initialize_transform_module(World& world) {
+    world.RegisterComponent<Transform3D>();
 }
 
-void uninitialize_transform_module() {
+void uninitialize_transform_module(World& /*world*/) {
     // No-op for now.
 }

@@ -3,10 +3,14 @@
 #include "Component.h"
 #include "Storage.h"
 #include "System.h"
+#include "EcsTypes.h"
+#include "EcsTypes.h"
 #include <vector>
 #include <memory>
 #include <cassert>
 #include <array>
+#include <typeindex>
+#include <unordered_map>
 
 
 class World {
@@ -23,9 +27,10 @@ public:
     EntityGeneration GetGeneration(EntityIndex idx) const;
 
     // -----------------------------------------------------------------
-    // Component registration (automatically called for each component via registry)
+    // Component registration (explicit, Godot-style)
     // -----------------------------------------------------------------
-    void AutoRegisterFromRegistry(); // called once after construction
+    template<class C>
+    void RegisterComponent();
 
     // -----------------------------------------------------------------
     // Component operations (templates)
@@ -81,9 +86,9 @@ private:
     std::vector<EntityIndex> free_list_;       // recycled indices
 
     // -----------------------------------------------------------------
-    // Internals – component storages, indexed by ComponentTypeID
+    // Internals – component storages, keyed by std::type_index
     // -----------------------------------------------------------------
-    std::vector<std::unique_ptr<IComponentStorage>> storages_;
+    std::unordered_map<std::type_index, std::unique_ptr<IComponentStorage>> storages_;
 
     // -----------------------------------------------------------------
     // Internals – systems per phase
@@ -117,7 +122,7 @@ inline Entity World::CreateEntity() {
 inline void World::DestroyEntity(const Entity& e) {
     if (!IsAlive(e)) return;
     // Remove all components belonging to this entity.
-    for (auto& storage : storages_) {
+    for (auto& [type, storage] : storages_) {
         if (storage) storage->RemoveByEntity(e.index);
     }
     // Add index back to free list for reuse.
@@ -135,16 +140,16 @@ inline EntityGeneration World::GetGeneration(EntityIndex idx) const {
     return INVALID_GENERATION;
 }
 
-inline void World::AutoRegisterFromRegistry() {
-    const auto& entries = ComponentRegistry::Instance().Entries();
-    for (const auto& entry : entries) {
-        // Ensure the storage vector can hold this component type.
-        ComponentTypeID type_id = static_cast<ComponentTypeID>(storages_.size());
-        // Assign the id back to the component's static field.
-        if (entry.id_ptr) *entry.id_ptr = type_id;
-        // Create storage via factory and store it.
-        storages_.push_back(entry.factory());
-    }
+// -----------------------------------------------------------------
+// Component registration
+// -----------------------------------------------------------------
+
+template<class C>
+inline void World::RegisterComponent() {
+    static_assert(std::is_base_of_v<ComponentBase, C>, "C must derive from ComponentBase");
+    auto key = std::type_index(typeid(C));
+    if (storages_.find(key) != storages_.end()) return; // already registered
+    storages_[key] = std::unique_ptr<IComponentStorage>(new SparseSetStorage<C>());
 }
 
 // -----------------------------------------------------------------
@@ -166,11 +171,9 @@ inline void World::UpdateSystems(SystemPhase phase, float dt) {
 template<class C>
 inline SparseSetStorage<C>* World::GetStorage() {
     static_assert(std::is_base_of_v<ComponentBase, C>, "C must derive from ComponentBase");
-    ComponentTypeID type_id = C::component_id;
-    assert(type_id != INVALID_COMPONENT_TYPE && "Component type not registered. Did you forget AutoRegisterFromRegistry()?" );
-    // The storage vector must already contain an entry at type_id.
-    assert(type_id < storages_.size());
-    return static_cast<SparseSetStorage<C>*>(storages_[type_id].get());
+    auto it = storages_.find(std::type_index(typeid(C)));
+    assert(it != storages_.end() && "Component type not registered. Did you forget RegisterComponent<>()?");
+    return static_cast<SparseSetStorage<C>*>(it->second.get());
 }
 
 template<class C, class... Args>
@@ -219,5 +222,3 @@ inline void World::ForEach(F&& fn) {
         fn(entity, storage->AtDense(i));
     }
 }
-
-

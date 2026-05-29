@@ -5,9 +5,6 @@
 #include <wrl.h>
 
 struct MeshComponent : public ComponentBase {
-    static inline ComponentTypeID component_id = INVALID_COMPONENT_TYPE;
-    static constexpr const char* ComponentName() noexcept { return "MeshComponent"; }
-
 public:
     Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
