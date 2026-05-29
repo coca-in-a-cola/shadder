@@ -32,7 +32,7 @@ void CollisionSystem::OnUpdate(World& world, float) {
 
             if (aMinX <= bMaxX && aMaxX >= bMinX &&
                 aMinY <= bMaxY && aMaxY >= bMinY) {
-                OnCollision.Broadcast(a, b);
+                OnCollision.emit(a, b);
             }
         }
     }

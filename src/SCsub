@@ -4,7 +4,7 @@ Import("env")
 
 SConscript([
     "main/SCsub",
-    "shared/SCsub",
+    "core/SCsub",
     "ecs/SCsub",
     "dev/SCsub",
     "framework/SCsub",

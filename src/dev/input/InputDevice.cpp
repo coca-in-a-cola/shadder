@@ -68,7 +68,7 @@ void InputDevice::OnMouseMove(RawMouseEventArgs args)
 
 	const MouseMoveEventArgs moveArgs = {MousePosition, MouseOffset, MouseWheelDelta};
 
-	MouseMove.Broadcast(moveArgs);
+	MouseMove.emit(moveArgs);
 }
 
 void InputDevice::AddPressedKey(Keys key)

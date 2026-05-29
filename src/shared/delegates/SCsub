@@ -1,4 +1,0 @@
-# src/shared/delegates/SCsub — multicast delegate implementation
-Import("env")
-
-env.add_source_files(env.module_sources, "*.cpp")

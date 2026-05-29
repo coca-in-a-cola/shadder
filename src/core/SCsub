@@ -2,6 +2,6 @@
 Import("env")
 
 SConscript([
-    "delegates/SCsub",
     "keycodes/SCsub",
+    "callable/SCsub",
 ], exports={"env": env})
