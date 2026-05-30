@@ -39,7 +39,12 @@ void InstancedRenderSystem::OnUpdate(World& world, float) {
             XMMatrixTranslation(tr.position.x, tr.position.y, tr.position.z);
 
         InstanceGpuData inst;
-        XMStoreFloat4x4(&inst.world, XMMatrixTranspose(world));
+        // world идёт в vertex buffer (не cbuffer).
+        // float4x4(a,b,c,d) в HLSL заполняет строки из аргументов-float4.
+        // XMStoreFloat4x4 пишет XMMATRIX построчно — строки совпадают.
+        // Транспонировать НЕ нужно: translation остаётся в строке 3 (w-компонента
+        // каждого float4), и mul(pos, world) применяет его к xyz корректно.
+        XMStoreFloat4x4(&inst.world, world);
         inst.color = tag.color;
         byBatch[tag.batch].push_back(inst);
     });

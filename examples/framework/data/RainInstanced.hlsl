@@ -7,7 +7,7 @@
 
 cbuffer VPBuffer : register(b1)
 {
-    row_major float4x4 ViewProj;
+    float4x4 ViewProj;
 };
 
 struct VS_IN
