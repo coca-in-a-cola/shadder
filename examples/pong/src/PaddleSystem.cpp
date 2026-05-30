@@ -5,6 +5,7 @@
 #include "dev/input/InputDevice.h"
 #include "ecs/Query.h"
 #include <algorithm>
+#include <iostream>
 
 static constexpr float kPaddleHalfH = 80.0f; // half-height in pixels
 static constexpr float kPaddleSpeed = 500.0f; // pixels/sec
@@ -21,9 +22,11 @@ void PaddleSystem::OnUpdate(World& world, float deltaTime) {
     playerQ.ForEach([&](Entity, Transform3D& tr, PlayerPaddleTag&) {
         float half = kPaddleHalfH;
         if (input->IsKeyDown(Keys::W)) {
+          std::cout << "W\n" << std::endl;
             tr.position.y = std::max(half, tr.position.y - kPaddleSpeed * deltaTime);
         }
         if (input->IsKeyDown(Keys::S)) {
+            std::cout << "S\n" << std::endl;
             tr.position.y = std::min(screenH_ - half, tr.position.y + kPaddleSpeed * deltaTime);
         }
     });

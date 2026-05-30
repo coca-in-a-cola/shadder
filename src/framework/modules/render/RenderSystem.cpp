@@ -24,7 +24,8 @@ void RenderSystem::OnUpdate(World& world, float) {
         // Per-object world CB
         Microsoft::WRL::ComPtr<ID3D11Buffer> worldCB;
         D3D11_BUFFER_DESC bd = { sizeof(XMMATRIX), D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0 };
-        D3D11_SUBRESOURCE_DATA sd = { &world };
+        XMMATRIX worldT = XMMatrixTranspose(world);
+        D3D11_SUBRESOURCE_DATA sd = { &worldT };
         device->CreateBuffer(&bd, &sd, worldCB.GetAddressOf());
         ctx->VSSetConstantBuffers(0, 1, worldCB.GetAddressOf());
 

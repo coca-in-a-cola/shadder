@@ -35,7 +35,7 @@ using namespace DirectX;
 static const int kScreenW = 900;
 static const int kScreenH = 900;
 static const int kTriangleCount = 15000; // тысячи треугольников — один draw call
-static const float kTriHalfSize = 100.0f; // полразмера треугольника в пикселях
+static const float kTriHalfSize = 5.0f; // полразмера треугольника в пикселях
 
 // -----------------------------------------------------------------------------
 // FallTeleportSystem — система-наследник ISystem (живёт в коде демо).
