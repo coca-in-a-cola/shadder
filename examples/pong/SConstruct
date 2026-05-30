@@ -13,6 +13,14 @@ def _copy_data(target, source, env):
     if os.path.isdir(dst):
         shutil.rmtree(dst)
     shutil.copytree(str(source[0]), dst)
+    # Дотягиваем общие ассеты фреймворка (дефолтный шейдер и т.п.) в bin/data,
+    # чтобы пример не дублировал их у себя.
+    framework_data = os.path.join(REPO_ROOT, 'data')
+    if os.path.isdir(framework_data):
+        for name in os.listdir(framework_data):
+            src_file = os.path.join(framework_data, name)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, os.path.join(dst, name))
 
 sys.path.insert(0, REPO_ROOT)
 from scons.utility.scons_hints import *  # noqa: E402,F401,F403
@@ -70,6 +78,7 @@ framework_cpp = [
     'framework/modules/render/register_types.cpp',
     'framework/modules/render/RenderSystem.cpp',
     'framework/modules/render/InstancedRenderSystem.cpp',
+    'framework/modules/render/ResourceLoader.cpp',
     'framework/modules/physics/register_types.cpp',
     'framework/modules/physics/MovementSystem.cpp',
     'framework/modules/physics/CollisionSystem.cpp',

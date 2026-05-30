@@ -1,3 +1,7 @@
+// Default2D.hlsl — базовый 2D-шейдер фреймворка.
+// Совместим с RenderSystem (World в slot b0) и CameraSystem (ViewProj в slot b1).
+// Формат вершины: POSITION0 (float4) + COLOR0 (float4) — пресет layout POS_COLOR.
+
 cbuffer WorldBuffer : register(b0)
 {
     float4x4 World;

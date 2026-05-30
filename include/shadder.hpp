@@ -32,6 +32,7 @@ namespace shadder {
     using ::MovementSystem;
     using ::Query;
     using ::RenderSystem;
+    using ::ResourceLoader;
     using ::Signal;
     using ::SparseSetStorage;
     using ::SystemPhase;
