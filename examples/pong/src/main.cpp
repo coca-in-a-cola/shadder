@@ -17,9 +17,9 @@ using namespace DirectX;
 
 static const int kScreenW = 800;
 static const int kScreenH = 800;
-static const float kPaddleW = 16.0f;
-static const float kPaddleH = 160.0f;
-static const float kBallSize = 16.0f;
+static const float kPaddleW = 12.0f;
+static const float kPaddleH = 120.0f;
+static const float kBallSize = 10.0f;
 
 struct Vertex {
     XMFLOAT4 pos;

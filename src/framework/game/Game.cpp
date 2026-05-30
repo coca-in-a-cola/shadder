@@ -1,5 +1,6 @@
 #include "framework/game/Game.h"
 #include <iostream>
+#include <windows.h>
 
 #include "framework/modules/physics/register_types.h"
 #include "framework/modules/render/register_types.h"
@@ -134,6 +135,42 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 								Exit();
 						}
 						return true;
+				}
+				case WM_INPUT: {
+						if (inputDevice) {
+							UINT dwSize = 0;
+							GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+							LPBYTE lpb = new BYTE[dwSize];
+							if (lpb == nullptr) return 0;
+
+							if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
+								delete[] lpb;
+								return 0;
+							}
+
+							RAWINPUT* raw = (RAWINPUT*)lpb;
+							if (raw->header.dwType == RIM_TYPEKEYBOARD) {
+								InputDevice::KeyboardInputEventArgs args;
+								args.MakeCode = raw->data.keyboard.MakeCode;
+								args.Flags = raw->data.keyboard.Flags;
+								args.VKey = raw->data.keyboard.VKey;
+								args.Message = raw->data.keyboard.Message;
+								inputDevice->OnKeyDown(args);
+							} else if (raw->header.dwType == RIM_TYPEMOUSE) {
+								InputDevice::RawMouseEventArgs args;
+								args.Mode = raw->data.mouse.usFlags;
+								args.ButtonFlags = raw->data.mouse.usButtonFlags;
+								args.ExtraInformation = raw->data.mouse.ulExtraInformation;
+								args.Buttons = raw->data.mouse.usButtonFlags;
+								args.WheelDelta = (short)raw->data.mouse.usButtonData;
+								args.X = raw->data.mouse.lLastX;
+								args.Y = raw->data.mouse.lLastY;
+								inputDevice->OnMouseMove(args);
+							}
+							delete[] lpb;
+							return 0;
+						}
+						break;
 				}
 				case WM_SIZE: {
 						if (wParam != SIZE_MINIMIZED && display) {

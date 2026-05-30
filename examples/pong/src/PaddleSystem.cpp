@@ -8,7 +8,7 @@
 #include <iostream>
 
 static constexpr float kPaddleHalfH = 80.0f; // half-height in pixels
-static constexpr float kPaddleSpeed = 500.0f; // pixels/sec
+static constexpr float kPaddleSpeed = 1000.0f; // pixels/sec
 
 PaddleSystem::PaddleSystem(Game* g, float screenH)
     : game_(g), screenH_(screenH) {}

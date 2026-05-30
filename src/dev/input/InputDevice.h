@@ -19,6 +19,23 @@ public:
     int WheelDelta;
   };
 
+  struct KeyboardInputEventArgs {
+    USHORT MakeCode;
+    USHORT Flags;
+    USHORT VKey;
+    UINT Message;
+  };
+
+  struct RawMouseEventArgs {
+    int Mode;
+    int ButtonFlags;
+    int ExtraInformation;
+    int Buttons;
+    int WheelDelta;
+    int X;
+    int Y;
+  };
+
   DirectX::SimpleMath::Vector2 MousePosition{};
   DirectX::SimpleMath::Vector2 MouseOffset{};
   int MouseWheelDelta{};
@@ -32,14 +49,10 @@ public:
   void RemovePressedKey(Keys key);
   bool IsKeyDown(Keys key);
 
-protected:
-  struct KeyboardInputEventArgs {
-    USHORT MakeCode;
-    USHORT Flags;
-    USHORT VKey;
-    UINT Message;
-  };
+  void OnKeyDown(KeyboardInputEventArgs args);
+  void OnMouseMove(RawMouseEventArgs args);
 
+protected:
   enum class MouseButtonFlags {
     LeftButtonDown  = 1,
     LeftButtonUp    = 2,
@@ -61,17 +74,4 @@ protected:
     Hwheel      = 2048,
     None        = 0,
   };
-
-  struct RawMouseEventArgs {
-    int Mode;
-    int ButtonFlags;
-    int ExtraInformation;
-    int Buttons;
-    int WheelDelta;
-    int X;
-    int Y;
-  };
-
-  void OnKeyDown(KeyboardInputEventArgs args);
-  void OnMouseMove(RawMouseEventArgs args);
 };
