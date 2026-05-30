@@ -3,11 +3,12 @@
 
 Checks:
   - -*
+  - -modernize-use-trailing-return-type
   - bugprone-use-after-move
   - modernize-deprecated-headers
   - modernize-redundant-void-arg
   - modernize-use-bool-literals
-#  - modernize-use-default-member-init # TODO Re-activate
+  - modernize-use-default-member-init
   - modernize-use-nullptr
   - readability-braces-around-statements
   - readability-redundant-member-init

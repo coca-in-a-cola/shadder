@@ -33,4 +33,10 @@ namespace shadder {
     using ::Transform3D;
     using ::VelocityComponent;
     using ::World;
+    using ::initialize_physics_module;
+    using ::initialize_render_module;
+    using ::initialize_transform_module;
+    using ::uninitialize_physics_module;
+    using ::uninitialize_render_module;
+    using ::uninitialize_transform_module;
 }

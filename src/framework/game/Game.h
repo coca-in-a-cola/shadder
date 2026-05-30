@@ -1,23 +1,21 @@
 #pragma once
 
-#include "dev/input/InputDevice.h"
 #include "dev/display/DisplayWin32.h"
+#include "dev/input/InputDevice.h"
 #include "ecs/World.h"
-#include <chrono>
 #include <d3d11.h>
 #include <dxgi.h>
-#include <memory>
-#include <vector>
 #include <wrl.h>
-#include <string>
+#include <chrono>
+#include <memory>
 
 class Game {
-public:
+  public:
   Game();
   virtual ~Game();
 
   // Инициализация и основной цикл
-  bool Initialize(DisplayWin32* display);
+  bool Initialize(DisplayWin32 *display);
   void Run();
   void Exit();
 
@@ -29,17 +27,17 @@ public:
   void Draw();
 
   // Публичные геттеры
-  [[nodiscard]] ID3D11Device* GetDevice() const { return device.Get(); }
-  [[nodiscard]] ID3D11DeviceContext* GetContext() const { return context.Get(); }
-  [[nodiscard]] IDXGISwapChain* GetSwapChain() const { return swapChain.Get(); }
-  [[nodiscard]] ID3D11RenderTargetView* GetRenderTargetView() const { return renderTargetView.Get(); }
-  [[nodiscard]] InputDevice* GetInputDevice() const { return inputDevice.get(); }
-  [[nodiscard]] DisplayWin32* GetDisplay() const { return display; }
-    [[nodiscard]] World& GetWorld() { return ecsWorld; }
-    [[nodiscard]] const World& GetWorld() const { return ecsWorld; }
+  [[nodiscard]] ID3D11Device *GetDevice() const { return device.Get(); }
+  [[nodiscard]] ID3D11DeviceContext *GetContext() const { return context.Get(); }
+  [[nodiscard]] IDXGISwapChain *GetSwapChain() const { return swapChain.Get(); }
+  [[nodiscard]] ID3D11RenderTargetView *GetRenderTargetView() const { return renderTargetView.Get(); }
+  [[nodiscard]] InputDevice *GetInputDevice() const { return inputDevice.get(); }
+  [[nodiscard]] DisplayWin32 *GetDisplay() const { return display; }
+  [[nodiscard]] World &GetWorld() { return ecsWorld; }
+  [[nodiscard]] const World &GetWorld() const { return ecsWorld; }
   [[nodiscard]] HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
 
-protected:
+  protected:
   // Виртуальные методы для переопределения в наследниках
   virtual bool PrepareFrame();
   virtual void PrepareResources();
@@ -57,9 +55,9 @@ protected:
   virtual void ScreenResized(int width, int height);
 
   // Display (owned externally, not destroyed by Game)
-    DisplayWin32* display;
-    // ECS world – lives inside Game
-    World ecsWorld;
+  DisplayWin32 *display;
+  // ECS world – lives inside Game
+  World ecsWorld;
 
   // D3D11 устройства
   Microsoft::WRL::ComPtr<ID3D11Device> device;
