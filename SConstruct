@@ -154,7 +154,11 @@ def _gen_wrapper_action(target, source, env):
     out_path = str(target[0])
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     header_paths = [str(s) for s in source if str(s).endswith('.h')]
-    generate_wrapper(header_paths, Path(out_path), 'shadder')
+    generate_wrapper(
+        header_paths, Path(out_path), 'shadder',
+        root_header=Path(Dir('#').abspath, 'src', 'index.h'),
+        include_dirs=[Path(Dir('#').abspath, 'src'), Path(Dir('#').abspath, 'include')],
+    )
 
 wrapper_cmd = env.Command(
     target='include/shadder.hpp',
