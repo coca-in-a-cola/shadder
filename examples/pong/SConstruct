@@ -1,0 +1,104 @@
+import os
+import sys
+import shutil
+
+BUILD_DIR = 'bin'
+PROGRAM_NAME = 'Pong'
+DATA_DIR = 'data'
+
+REPO_ROOT = os.path.abspath(os.path.join(Dir('#').abspath, '..', '..'))
+
+def _copy_data(target, source, env):
+    dst = str(target[0])
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(str(source[0]), dst)
+
+sys.path.insert(0, REPO_ROOT)
+from scons.utility.scons_hints import *  # noqa: E402,F401,F403
+REPO_SRC = os.path.join(REPO_ROOT, 'src')
+REPO_INCLUDE = os.path.join(REPO_ROOT, 'include')
+REPO_DXTK_INCLUDE = os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'include')
+
+opts = Variables([], ARGUMENTS)
+opts.Add(BoolVariable("verbose", "Verbose output", False))
+opts.Add(BoolVariable("compiledb", "Generate compilation DB", False))
+opts.Add(BoolVariable("compiledb_gen_only", "Exit after DB gen", False))
+
+debug = ARGUMENTS.get('debug', '1')
+
+VariantDir(BUILD_DIR, 'src', duplicate=False)
+
+env = Environment(ENV=os.environ, TARGET_ARCH='x86_64')
+env['CC'] = 'clang-cl'
+env['CXX'] = 'clang-cl'
+
+env.Append(CPPPATH=[
+    REPO_SRC,
+    REPO_INCLUDE,
+    REPO_DXTK_INCLUDE,
+])
+
+env.Append(CPPDEFINES=['UNICODE', '_UNICODE', 'NOMINMAX'])
+env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+
+if debug == '1':
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Debug')])
+else:
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Release')])
+
+env.Append(LIBS=[
+    'user32', 'gdi32', 'ole32', 'kernel32',
+    'd3d11', 'dxgi', 'd3dcompiler', 'dxguid',
+])
+
+opts.Update(env)
+
+if env["compiledb"]:
+    env.Tool("compilation_db")
+    compiledb = env.CompilationDatabase(target="compile_commands.json")
+    env.Default(compiledb)
+    if not env["verbose"]:
+        env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
+
+framework_cpp = [
+    'core/callable/callable.cpp',
+    'dev/display/DisplayWin32.cpp',
+    'dev/input/InputDevice.cpp',
+    'framework/game/Game.cpp',
+    'framework/modules/transform/register_types.cpp',
+    'framework/modules/render/register_types.cpp',
+    'framework/modules/render/RenderSystem.cpp',
+    'framework/modules/render/InstancedRenderSystem.cpp',
+    'framework/modules/physics/register_types.cpp',
+    'framework/modules/physics/MovementSystem.cpp',
+    'framework/modules/physics/CollisionSystem.cpp',
+    'framework/modules/camera/register_types.cpp',
+    'framework/modules/camera/CameraSystem.cpp',
+]
+
+framework_objects = []
+for rel in framework_cpp:
+    src = os.path.join(REPO_SRC, rel)
+    obj = os.path.join(BUILD_DIR, 'framework', rel.replace('/', '_') + '.obj')
+    framework_objects.append(env.Object(target=obj, source=src))
+
+demo_sources = Glob(f'{BUILD_DIR}/*.cpp')
+
+prog = env.Program(
+    target=f'{BUILD_DIR}/{PROGRAM_NAME}',
+    source=demo_sources + framework_objects,
+)
+Default(prog)
+
+data_copy = env.Command(
+    os.path.join(BUILD_DIR, DATA_DIR),
+    DATA_DIR,
+    _copy_data,
+)
+Default(data_copy)
+
+if env["compiledb"] and env["compiledb_gen_only"]:
+    from SCons.Tool.compilation_db import write_compilation_db
+    write_compilation_db([env.File("compile_commands.json")], [], env)
+    env.Exit()
