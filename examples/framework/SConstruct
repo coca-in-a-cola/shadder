@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 # =============================================================================
 #  examples/framework/SConstruct
@@ -12,6 +13,7 @@ import sys
 
 BUILD_DIR = 'bin'
 PROGRAM_NAME = 'Framework'
+DATA_DIR = 'data'
 
 # Корень репозитория относительно этого примера (examples/framework -> ../../).
 REPO_ROOT = os.path.abspath(os.path.join(Dir('#').abspath, '..', '..'))
@@ -100,6 +102,22 @@ prog = env.Program(
     source=demo_sources + framework_objects,
 )
 Default(prog)
+
+# ---------------------------------------------------------
+# Copy data assets to build output
+# ---------------------------------------------------------
+def _copy_data(target, source, env):
+    dst = str(target[0])
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(str(source[0]), dst)
+
+data_copy = env.Command(
+    os.path.join(BUILD_DIR, DATA_DIR),
+    DATA_DIR,
+    _copy_data,
+)
+Default(data_copy)
 
 if env["compiledb"] and env["compiledb_gen_only"]:
     from SCons.Tool.compilation_db import write_compilation_db

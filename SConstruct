@@ -4,9 +4,11 @@ import sys
 from pathlib import Path
 import urllib.request
 import zipfile
+import shutil
 
 BUILD_DIR = 'bin'
 PROGRAMM_NAME = 'SuperShadder'
+DATA_DIR = 'data'
 
 # ---------------------------------------------------------
 # 0. BUILD OPTIONS (The Godot Way)
@@ -177,6 +179,22 @@ prog = env.Program(
 
 # Convenience alias
 Default(prog)
+
+# ---------------------------------------------------------
+# 5. COPY DATA ASSETS
+# ---------------------------------------------------------
+def _copy_data(target, source, env):
+    dst = str(target[0])
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(str(source[0]), dst)
+
+data_copy = env.Command(
+    os.path.join(BUILD_DIR, DATA_DIR),
+    DATA_DIR,
+    _copy_data,
+)
+Default(data_copy)
 
 # After the build graph is fully populated, write the compilation DB and exit
 # if we only want the DB without compiling.
