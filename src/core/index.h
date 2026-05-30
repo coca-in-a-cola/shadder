@@ -1,4 +1,4 @@
 #pragma once
 
-#include "shared/delegates/Delegates.h"
-#include "shared/keycodes/Keys.h"
+#include "core/callable/callable.h"
+#include "core/keycodes/Keys.h"

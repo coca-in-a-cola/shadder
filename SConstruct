@@ -1,5 +1,7 @@
 from scons.utility.scons_hints import *
 import os
+import sys
+from pathlib import Path
 import urllib.request
 import zipfile
 
@@ -80,6 +82,7 @@ env['CXX'] = 'clang-cl'
 # Single include root — all headers are addressed as "module/file.h"
 env.Append(CPPPATH=[
     '#/src',
+    '#/include',
     '#/thirdparty/directxtk/include',
 ])
 
@@ -133,6 +136,32 @@ if env["compiledb"]:
 # Kick off the recursive module walk starting from build/SCsub
 # (VariantDir maps build/ -> src/, so build/SCsub is src/SCsub)
 SConscript(f'{BUILD_DIR}/SCsub', exports={'env': env})
+
+# ---------------------------------------------------------
+# 3b. GENERATE NAMESPACE WRAPPER HEADER
+# ---------------------------------------------------------
+sys.path.insert(0, Dir('#').abspath)
+from scons.utility.generate_wrapper import generate_wrapper
+
+src_root = os.path.join(Dir('#').abspath, 'src')
+framework_headers = []
+for root, dirs, files in os.walk(src_root):
+    for f in files:
+        if f.endswith('.h'):
+            framework_headers.append(os.path.join(root, f))
+
+def _gen_wrapper_action(target, source, env):
+    out_path = str(target[0])
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    header_paths = [str(s) for s in source if str(s).endswith('.h')]
+    generate_wrapper(header_paths, Path(out_path), 'shadder')
+
+wrapper_cmd = env.Command(
+    target='include/shadder.hpp',
+    source=framework_headers + ['scons/utility/generate_wrapper.py'],
+    action=_gen_wrapper_action,
+)
+env.Depends(env.module_sources, wrapper_cmd)
 
 # ---------------------------------------------------------
 # 4. FINAL PROGRAM
