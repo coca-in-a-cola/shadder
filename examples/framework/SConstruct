@@ -1,0 +1,37 @@
+import os
+from scons.utility.scons_hints import *
+
+BUILD_DIR = 'bin'
+PROGRAM_NAME = 'Framework'
+
+opts = Variables([], ARGUMENTS)
+opts.Add(BoolVariable("verbose", "Verbose output", False))
+opts.Add(BoolVariable("compiledb", "Generate compilation DB", False))
+opts.Add(BoolVariable("compiledb_gen_only", "Exit after DB gen", False))
+
+VariantDir(BUILD_DIR, 'src', duplicate=False)
+
+env = Environment(ENV=os.environ, TARGET_ARCH='x86_64')
+env['CC'] = 'clang-cl'
+env['CXX'] = 'clang-cl'
+env.Append(CPPPATH=['#/src'])
+env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+
+opts.Update(env)
+
+if env["compiledb"]:
+    env.Tool("compilation_db")
+    compiledb = env.CompilationDatabase(target="compile_commands.json")
+    env.Default(compiledb)
+    if not env["verbose"]:
+        env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
+
+sources = Glob(f'{BUILD_DIR}/*.cpp')
+
+prog = env.Program(target=f'{BUILD_DIR}/{PROGRAM_NAME}', source=sources)
+Default(prog)
+
+if env["compiledb"] and env["compiledb_gen_only"]:
+    from SCons.Tool.compilation_db import write_compilation_db
+    write_compilation_db([env.File("compile_commands.json")], [], env)
+    env.Exit()
