@@ -5,5 +5,6 @@ SConscript([
     "modules/transform/SCsub",
     "modules/render/SCsub",
     "modules/physics/SCsub",
+    "modules/camera/SCsub",
     "game/SCsub",
 ], exports={"env": env})

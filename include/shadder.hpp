@@ -6,6 +6,8 @@ namespace shadder {
     using ::Callable;
     using ::CallableCustom;
     using ::CallableCustomFunction;
+    using ::CameraComponent;
+    using ::CameraSystem;
     using ::ColliderComponent;
     using ::CollisionSystem;
     using ::ComponentBase;
@@ -21,6 +23,9 @@ namespace shadder {
     using ::INVALID_GENERATION;
     using ::ISystem;
     using ::InputDevice;
+    using ::InstanceTag;
+    using ::InstancedMeshComponent;
+    using ::InstancedRenderSystem;
     using ::Keys;
     using ::MaterialComponent;
     using ::MeshComponent;

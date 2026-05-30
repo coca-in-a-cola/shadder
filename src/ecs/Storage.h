@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstddef>
 #include <algorithm>
+#include <cassert>
 
 
 // -----------------------------------------------------------------------------

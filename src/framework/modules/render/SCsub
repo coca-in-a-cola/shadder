@@ -3,3 +3,4 @@ Import("env")
 
 env.add_source_files(env.module_sources, "register_types.cpp")
 env.add_source_files(env.module_sources, "RenderSystem.cpp")
+env.add_source_files(env.module_sources, "InstancedRenderSystem.cpp")

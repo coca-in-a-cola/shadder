@@ -4,6 +4,7 @@
 #include "framework/modules/physics/register_types.h"
 #include "framework/modules/render/register_types.h"
 #include "framework/modules/transform/register_types.h"
+#include "framework/modules/camera/register_types.h"
 
 
 #pragma comment(lib, "d3d11.lib")
@@ -63,10 +64,11 @@ bool Game::Initialize(DisplayWin32 *inDisplay) {
 		// Создание InputDevice
 		inputDevice = std::make_unique<InputDevice>(display->hWnd);
 
-		// Initialize ECS modules explicitly (Godot-style)
-		initialize_transform_module(ecsWorld);
-		initialize_render_module(ecsWorld);
-		initialize_physics_module(ecsWorld);
+// Initialize ECS modules explicitly (Godot-style)
+initialize_transform_module(ecsWorld);
+initialize_render_module(ecsWorld);
+initialize_physics_module(ecsWorld);
+initialize_camera_module(ecsWorld);
 
 		// Создание back buffer и render target view
 		CreateBackBuffer();

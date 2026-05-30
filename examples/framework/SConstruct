@@ -1,21 +1,62 @@
 import os
-from scons.utility.scons_hints import *
+import sys
+
+# =============================================================================
+#  examples/framework/SConstruct
+#  Демо собирается ВМЕСТЕ с исходниками фреймворка из ../../src и подключает
+#  сгенерированный namespace-обёрточный заголовок ../../include/shadder.hpp.
+#
+#  Раньше здесь компилировался только локальный src/*.cpp с CPPPATH='#/src',
+#  из-за чего демо не линковалось с фреймворком (Game, RenderSystem и т.д.).
+# =============================================================================
 
 BUILD_DIR = 'bin'
 PROGRAM_NAME = 'Framework'
+
+# Корень репозитория относительно этого примера (examples/framework -> ../../).
+REPO_ROOT = os.path.abspath(os.path.join(Dir('#').abspath, '..', '..'))
+
+# scons-утилиты (scons_hints) лежат в корне репозитория.
+sys.path.insert(0, REPO_ROOT)
+from scons.utility.scons_hints import *  # noqa: E402,F401,F403
+REPO_SRC = os.path.join(REPO_ROOT, 'src')
+REPO_INCLUDE = os.path.join(REPO_ROOT, 'include')
+REPO_DXTK_INCLUDE = os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'include')
 
 opts = Variables([], ARGUMENTS)
 opts.Add(BoolVariable("verbose", "Verbose output", False))
 opts.Add(BoolVariable("compiledb", "Generate compilation DB", False))
 opts.Add(BoolVariable("compiledb_gen_only", "Exit after DB gen", False))
 
+debug = ARGUMENTS.get('debug', '1')
+
+# Локальные исходники демо (examples/framework/src) -> bin/.
 VariantDir(BUILD_DIR, 'src', duplicate=False)
 
 env = Environment(ENV=os.environ, TARGET_ARCH='x86_64')
 env['CC'] = 'clang-cl'
 env['CXX'] = 'clang-cl'
-env.Append(CPPPATH=['#/src'])
+
+# Все заголовки фреймворка адресуются как "module/file.h" из ../../src,
+# а shadder.hpp лежит в ../../include.
+env.Append(CPPPATH=[
+    REPO_SRC,
+    REPO_INCLUDE,
+    REPO_DXTK_INCLUDE,
+])
+
+env.Append(CPPDEFINES=['UNICODE', '_UNICODE'])
 env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+
+if debug == '1':
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Debug')])
+else:
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Release')])
+
+env.Append(LIBS=[
+    'user32', 'gdi32', 'ole32', 'kernel32',
+    'd3d11', 'dxgi', 'd3dcompiler', 'dxguid',
+])
 
 opts.Update(env)
 
@@ -26,9 +67,38 @@ if env["compiledb"]:
     if not env["verbose"]:
         env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
 
-sources = Glob(f'{BUILD_DIR}/*.cpp')
+# -----------------------------------------------------------------------------
+# Исходники фреймворка, необходимые демо. Компилируются прямо отсюда
+# (без отдельной библиотеки) во временную поддиректорию bin/framework.
+# -----------------------------------------------------------------------------
+framework_cpp = [
+    'core/callable/callable.cpp',
+    'dev/display/DisplayWin32.cpp',
+    'dev/input/InputDevice.cpp',
+    'framework/game/Game.cpp',
+    'framework/modules/transform/register_types.cpp',
+    'framework/modules/render/register_types.cpp',
+    'framework/modules/render/RenderSystem.cpp',
+    'framework/modules/render/InstancedRenderSystem.cpp',
+    'framework/modules/physics/register_types.cpp',
+    'framework/modules/physics/MovementSystem.cpp',
+    'framework/modules/physics/CollisionSystem.cpp',
+    'framework/modules/camera/register_types.cpp',
+    'framework/modules/camera/CameraSystem.cpp',
+]
 
-prog = env.Program(target=f'{BUILD_DIR}/{PROGRAM_NAME}', source=sources)
+framework_objects = []
+for rel in framework_cpp:
+    src = os.path.join(REPO_SRC, rel)
+    obj = os.path.join(BUILD_DIR, 'framework', rel.replace('/', '_') + '.obj')
+    framework_objects.append(env.Object(target=obj, source=src))
+
+demo_sources = Glob(f'{BUILD_DIR}/*.cpp')
+
+prog = env.Program(
+    target=f'{BUILD_DIR}/{PROGRAM_NAME}',
+    source=demo_sources + framework_objects,
+)
 Default(prog)
 
 if env["compiledb"] and env["compiledb_gen_only"]:
