@@ -1,5 +1,5 @@
 #include "register_types.h"
-#include "ecs/World.h"
+#include "core/ecs/World.h"
 #include "VelocityComponent.h"
 #include "ColliderComponent.h"
 

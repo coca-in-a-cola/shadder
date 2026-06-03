@@ -1,5 +1,5 @@
 #include "framework/modules/physics/MovementSystem.h"
-#include "ecs/Query.h"
+#include "core/ecs/Query.h"
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/modules/physics/VelocityComponent.h"
 #include <DirectXMath.h>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ecs/Component.h"
-#include "ecs/EcsTypes.h"
+#include "core/ecs/Component.h"
+#include "core/ecs/EcsTypes.h"
 #include <DirectXMath.h>
 
 // -----------------------------------------------------------------------------

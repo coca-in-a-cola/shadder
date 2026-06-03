@@ -1,2 +1,0 @@
-# src/shared/keycodes/SCsub — header-only, no sources to compile
-Import("env")

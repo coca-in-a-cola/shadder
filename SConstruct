@@ -120,8 +120,20 @@ def add_source_files(env, sources, files):
 
 env.AddMethod(add_source_files, "add_source_files")
 
-# Shared list that every SCsub will append to
+# Shared list that every module will append to
 env.module_sources = []
+
+def collect_module_sources(env, sources, src_dir):
+    """Recursively collect all .cpp files from src_dir tree via VariantDir.
+    Each subdirectory is treated as a module — no manual SCsub files needed."""
+    src_base = Dir(src_dir).abspath
+    build_base = Dir(BUILD_DIR).abspath
+    for root, dirs, files in os.walk(src_base):
+        dirs.sort()
+        for f in files:
+            if f.endswith('.cpp'):
+                rel = os.path.relpath(os.path.join(root, f), src_base)
+                sources.append(File(os.path.join(build_base, rel)))
 
 # Update the environment to have all above options defined
 # in following code (especially platform and custom_modules).
@@ -135,9 +147,9 @@ if env["compiledb"]:
     if not env["verbose"]:
         env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
 
-# Kick off the recursive module walk starting from build/SCsub
-# (VariantDir maps build/ -> src/, so build/SCsub is src/SCsub)
-SConscript(f'{BUILD_DIR}/SCsub', exports={'env': env})
+# Auto-discover all .cpp files in src/ tree — replaces the old
+# recursive SCsub walk (17 SCsub files removed).
+collect_module_sources(env, env.module_sources, os.path.join(Dir('#').abspath, 'src'))
 
 # ---------------------------------------------------------
 # 3b. GENERATE NAMESPACE WRAPPER HEADER

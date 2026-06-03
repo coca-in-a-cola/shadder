@@ -1,5 +1,5 @@
 #include "register_types.h"
-#include "ecs/World.h"
+#include "core/ecs/World.h"
 #include "Transform3D.h"
 
 void initialize_transform_module(World& world) {

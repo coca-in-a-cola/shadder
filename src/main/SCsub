@@ -1,4 +1,0 @@
-# src/main/SCsub — contributes main.cpp to the build
-Import("env")
-
-env.add_source_files(env.module_sources, "*.cpp")

@@ -1,6 +1,0 @@
-# src/ecs/SCsub — ECS primitives (header-only core + component/system subfolders)
-Import("env")
-
-# ECS core is header-only (World, Query, Storage, Component, System, EcsTypes).
-# Recurse into subfolders for any concrete implementations.
-env.add_source_files(env.module_sources, "*.cpp")

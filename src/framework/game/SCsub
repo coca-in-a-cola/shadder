@@ -1,4 +1,0 @@
-# src/framework/game/SCsub — Game class (D3D11 init, loop, ECS orchestration)
-Import("env")
-
-env.add_source_files(env.module_sources, "*.cpp")

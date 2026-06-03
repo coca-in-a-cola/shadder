@@ -1,7 +1,7 @@
 #include "framework/modules/render/ResourceLoader.h"
 #include "framework/modules/render/MeshComponent.h"
 #include "framework/modules/render/MaterialComponent.h"
-#include "ecs/Query.h"
+#include "core/ecs/Query.h"
 #include <windows.h>
 #include <DirectXMath.h>
 #include <d3dcompiler.h>

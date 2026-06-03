@@ -1,7 +1,0 @@
-# src/dev/SCsub — OS/hardware device wrappers
-Import("env")
-
-SConscript([
-    "display/SCsub",
-    "input/SCsub",
-], exports={"env": env})

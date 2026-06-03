@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ecs/System.h"
-#include "ecs/EcsTypes.h"
-#include "core/callable/callable.h"
+#include "core/ecs/System.h"
+#include "core/ecs/EcsTypes.h"
+#include "util/callable/callable.h"
 
 class CollisionSystem : public ISystem {
 public:

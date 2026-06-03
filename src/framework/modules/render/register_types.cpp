@@ -1,5 +1,5 @@
 #include "register_types.h"
-#include "ecs/World.h"
+#include "core/ecs/World.h"
 #include "MeshComponent.h"
 #include "MaterialComponent.h"
 #include "InstancedMeshComponent.h"

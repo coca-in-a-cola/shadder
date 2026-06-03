@@ -1,7 +1,0 @@
-# src/shared/SCsub — shared utilities (delegates, keycodes)
-Import("env")
-
-SConscript([
-    "keycodes/SCsub",
-    "callable/SCsub",
-], exports={"env": env})

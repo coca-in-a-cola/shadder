@@ -1,6 +1,6 @@
 #include "framework/modules/camera/CameraSystem.h"
 #include "dev/display/DisplayWin32.h"
-#include "ecs/Query.h"
+#include "core/ecs/Query.h"
 #include "framework/game/Game.h"
 #include "framework/modules/camera/CameraComponent.h"
 #include <DirectXMath.h>

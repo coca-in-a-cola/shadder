@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ecs/System.h"
+#include "core/ecs/System.h"
 
 class Game;
 

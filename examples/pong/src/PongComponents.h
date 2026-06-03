@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs/Component.h"
+#include "core/ecs/Component.h"
 #include <chrono>
 
 struct PongStateComponent final : public ComponentBase {

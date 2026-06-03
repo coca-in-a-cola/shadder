@@ -1,3 +1,5 @@
+// ДОП: СЧЁТ.
+
 #include "shadder.hpp"
 
 #include <windows.h>

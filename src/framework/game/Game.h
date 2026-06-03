@@ -2,7 +2,7 @@
 
 #include "dev/display/DisplayWin32.h"
 #include "dev/input/InputDevice.h"
-#include "ecs/World.h"
+#include "core/ecs/World.h"
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl.h>

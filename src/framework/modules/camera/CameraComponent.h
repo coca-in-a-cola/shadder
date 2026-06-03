@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ecs/Component.h"
+#include "core/ecs/Component.h"
 #include <DirectXMath.h>
 
 // -----------------------------------------------------------------------------

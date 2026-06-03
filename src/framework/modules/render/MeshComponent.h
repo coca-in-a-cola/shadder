@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ecs/Component.h"
+#include "core/ecs/Component.h"
 #include <DirectXMath.h>
 #include <d3d11.h>
 #include <wrl.h>

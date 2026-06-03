@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/keycodes/Keys.h"
-#include "core/callable/callable.h"
+#include "util/keycodes/Keys.h"
+#include "util/callable/callable.h"
 #include <SimpleMath.h>
 #include <d3d11.h>
 #include <windows.h>

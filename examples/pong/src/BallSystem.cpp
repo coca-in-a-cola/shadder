@@ -2,7 +2,7 @@
 #include "PongComponents.h"
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/modules/physics/VelocityComponent.h"
-#include "ecs/Query.h"
+#include "core/ecs/Query.h"
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>

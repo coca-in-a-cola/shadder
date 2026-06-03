@@ -5,8 +5,8 @@
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/game/Game.h"
 #include "dev/display/DisplayWin32.h"
-#include "ecs/Query.h"
-#include "ecs/World.h"
+#include "core/ecs/Query.h"
+#include "core/ecs/World.h"
 
 #include <DirectXMath.h>
 #include <unordered_map>

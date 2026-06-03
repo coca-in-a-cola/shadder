@@ -3,7 +3,7 @@
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/game/Game.h"
 #include "dev/input/InputDevice.h"
-#include "ecs/Query.h"
+#include "core/ecs/Query.h"
 #include <algorithm>
 #include <iostream>
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ecs/Component.h"
-#include "ecs/Storage.h"
-#include "ecs/World.h"
+#include "core/ecs/Component.h"
+#include "core/ecs/Storage.h"
+#include "core/ecs/World.h"
 
 #include <array>
 #include <cstdint>
