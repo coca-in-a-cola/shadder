@@ -29,6 +29,8 @@
 using namespace shadder;
 using namespace DirectX;
 
+#include "shared/prefabs/CameraPrefabs.h"
+
 // -----------------------------------------------------------------------------
 // Параметры демо
 // -----------------------------------------------------------------------------
@@ -192,19 +194,9 @@ int main() {
 
     World& world = game.GetWorld();
 
-    // --- Камера: ортографика в экранных пикселях (origin = левый-верхний угол,
-    //     ось Y вниз). Её ViewProj CameraSystem кладёт в constant buffer b1,
-    //     откуда его читает RainInstanced.hlsl. Без камеры b1 пуст -> чёрный экран.
-    {
-        Entity cameraEntity = world.CreateEntity();
-        auto& cam = world.AddComponent<CameraComponent>(cameraEntity);
-        cam.projection = CameraComponent::Projection::ORTHO_SCREEN;
-        cam.screenW = static_cast<float>(kScreenW);
-        cam.screenH = static_cast<float>(kScreenH);
-        cam.nearZ = -1.0f; // 2D: пускаем диапазон Z вокруг нуля
-        cam.farZ  = 1.0f;
-        cam.active = true;
-    }
+    // --- Камера: 2D orthographic in screen pixels.
+    OrthoCameraPrefab(static_cast<float>(kScreenW),
+                      static_cast<float>(kScreenH)).Instantiate(world);
 
     // --- Системы (порядок важен) -------------------------------------------
     // PRE_RENDER: камера обновляет ViewProjection (slot b1) до рендера.

@@ -13,6 +13,9 @@
 #include "PaddleSystem.h"
 #include "BallSystem.h"
 
+#include "shared/prefabs/CameraPrefabs.h"
+#include "shared/prefabs/MeshPrefabs.h"
+
 using namespace shadder;
 using namespace DirectX;
 
@@ -36,24 +39,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     }
 }
 
-// Создаёт сущность-quad: только ОПИСАНИЕ ресурсов. GPU-буферы/шейдеры создаст
-// ResourceLoader::UploadAll() — фреймворк, перед стартом игрового цикла.
-static Entity CreateQuadEntity(World& world, float width, float height,
-                               const XMFLOAT4& color) {
-    Entity e = world.CreateEntity();
-
-    auto& mesh = world.AddComponent<MeshComponent>(e);
-    mesh.primitive = MeshComponent::Primitive::QUAD;
-    mesh.quadWidth = width;
-    mesh.quadHeight = height;
-    mesh.quadColor = color;
-
-    // Материал без shaderPath => дефолтный 2D-шейдер фреймворка.
-    world.AddComponent<MaterialComponent>(e);
-
-    return e;
-}
-
 int main() {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
@@ -69,30 +54,21 @@ int main() {
 
     World& world = game.GetWorld();
 
-    // Register custom components
+    // Register custom components not managed by prefabs
     world.RegisterComponent<PongStateComponent>();
     world.RegisterComponent<PlayerPaddleTag>();
     world.RegisterComponent<AiPaddleTag>();
     world.RegisterComponent<BallTag>();
 
-    // Camera
-    {
-        Entity cameraEntity = world.CreateEntity();
-        auto& cam = world.AddComponent<CameraComponent>(cameraEntity);
-        cam.projection = CameraComponent::Projection::ORTHO_SCREEN;
-        cam.screenW = static_cast<float>(kScreenW);
-        cam.screenH = static_cast<float>(kScreenH);
-        cam.nearZ = -1.0f;
-        cam.farZ = 1.0f;
-        cam.active = true;
-    }
+    // Camera — 2D orthographic in screen pixels
+    OrthoCameraPrefab(static_cast<float>(kScreenW),
+                      static_cast<float>(kScreenH)).Instantiate(world);
 
-    // Сущности задают только описание (размер/цвет); ресурсы создаст ResourceLoader.
     XMFLOAT4 white = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     // Player paddle (left)
     {
-        Entity e = CreateQuadEntity(world, kPaddleW, kPaddleH, white);
+        Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
         auto& tr = world.AddComponent<Transform3D>(e);
         tr.position = { kPaddleW * 0.5f + 10.0f, kScreenH * 0.5f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
@@ -101,7 +77,7 @@ int main() {
 
     // AI paddle (right)
     {
-        Entity e = CreateQuadEntity(world, kPaddleW, kPaddleH, white);
+        Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
         auto& tr = world.AddComponent<Transform3D>(e);
         tr.position = { kScreenW - kPaddleW * 0.5f - 10.0f, kScreenH * 0.5f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
@@ -110,7 +86,7 @@ int main() {
 
     // Ball
     {
-        Entity e = CreateQuadEntity(world, kBallSize, kBallSize, white);
+        Entity e = QuadPrefab(kBallSize, kBallSize, white).Instantiate(world);
         auto& tr = world.AddComponent<Transform3D>(e);
         tr.position = { kScreenW * 0.5f, kScreenH * 0.5f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
@@ -129,7 +105,7 @@ int main() {
         ps.continueTime = std::chrono::steady_clock::now() + std::chrono::seconds(1);
     }
 
-    // Register systems
+    // Register systems (manual — will be addressed later)
     world.RegisterSystem<CameraSystem>(SystemPhase::PRE_RENDER, &game);
 
     world.RegisterSystem<PaddleSystem>(SystemPhase::UPDATE, &game,
