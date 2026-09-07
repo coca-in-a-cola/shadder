@@ -4,12 +4,14 @@
 #include "MaterialComponent.h"
 #include "InstancedMeshComponent.h"
 #include "InstanceTag.h"
+#include "TextComponent.h"
 
 void initialize_render_module(World& world) {
     world.RegisterComponent<MeshComponent>();
     world.RegisterComponent<MaterialComponent>();
     world.RegisterComponent<InstancedMeshComponent>();
     world.RegisterComponent<InstanceTag>();
+    world.RegisterComponent<shadder::TextComponent>();
 }
 
 void uninitialize_render_module(World& /*world*/) {
