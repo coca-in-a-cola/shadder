@@ -2,8 +2,6 @@
 #include "core/ecs/World.h"
 #include "MeshComponent.h"
 #include "MaterialComponent.h"
-#include "PhongMaterialComponent.h"
-#include "DirectionalLightComponent.h"
 #include "InstancedMeshComponent.h"
 #include "InstanceTag.h"
 #include "TextComponent.h"
