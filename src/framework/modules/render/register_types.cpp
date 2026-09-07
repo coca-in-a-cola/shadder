@@ -9,8 +9,6 @@
 void initialize_render_module(World& world) {
     world.RegisterComponent<MeshComponent>();
     world.RegisterComponent<MaterialComponent>();
-    world.RegisterComponent<PhongMaterialComponent>();
-    world.RegisterComponent<DirectionalLightComponent>();
     world.RegisterComponent<InstancedMeshComponent>();
     world.RegisterComponent<InstanceTag>();
     world.RegisterComponent<shadder::TextComponent>();
