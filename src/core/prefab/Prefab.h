@@ -5,6 +5,8 @@
 #include <memory>
 #include <vector>
 
+class PackedScene;
+
 class Prefab {
 public:
     Prefab() = default;
@@ -14,6 +16,32 @@ public:
 
     Prefab(const Prefab&) = delete;
     Prefab& operator=(const Prefab&) = delete;
+
+    // Type-erased component applier. Shared with PackedScene: the
+    // Prefab::ToPackedScene bridge (implemented in PackedScene.h) clones
+    // appliers into a single-node PackedScene.
+    struct IApplier {
+        virtual void Apply(World&, Entity) const = 0;
+        virtual std::shared_ptr<IApplier> Clone() const = 0;
+        virtual ~IApplier() = default;
+    };
+
+    template <class T, class F>
+    struct Applier : IApplier {
+        F init;
+
+        explicit Applier(F&& f) : init(std::forward<F>(f)) {}
+
+        void Apply(World& w, Entity e) const override {
+            w.RegisterComponent<T>();
+            auto& c = w.AddComponent<T>(e);
+            init(c);
+        }
+
+        std::shared_ptr<IApplier> Clone() const override {
+            return std::make_shared<Applier<T, F>>(*this);
+        }
+    };
 
     template <class T, class F>
     Prefab& With(F&& init) {
@@ -30,24 +58,14 @@ public:
         return e;
     }
 
+    // Bridge: build a self-contained single-node PackedScene from this Prefab
+    // (appliers are cloned — no references back into the Prefab object).
+    // Defined in PackedScene.h (needs the complete PackedScene type).
+    PackedScene ToPackedScene() const;
+
 private:
-    struct IApplier {
-        virtual void Apply(World&, Entity) const = 0;
-        virtual ~IApplier() = default;
-    };
-
-    template <class T, class F>
-    struct Applier : IApplier {
-        F init;
-
-        explicit Applier(F&& f) : init(std::forward<F>(f)) {}
-
-        void Apply(World& w, Entity e) const override {
-            w.RegisterComponent<T>();
-            auto& c = w.AddComponent<T>(e);
-            init(c);
-        }
-    };
+    friend class PackedScene;
+    friend class SceneBuilder;
 
     std::vector<std::unique_ptr<IApplier>> apps_;
 };

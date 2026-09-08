@@ -13,6 +13,14 @@
 //   5. SceneTree helpers (CreateNode, FindByEntity, ForEach, node count)
 //   6. SyncToECS writes the global transform into the entity's Transform3D
 //   7. cycle guard (adding an ancestor as a child is a no-op)
+//   8. PackedScene: build -> instantiate -> hierarchy + transforms in World
+//   9. PackedScene nesting: Inline another scene -> recursive unpack,
+//      per-instance name/transform overrides, ECS stays in sync
+//  10. PackedScene reuse: two instantiations of a scene with a shared nested
+//      scene produce independent subtrees; InstantiateAsChild
+//  11. nested-scene cycle guard (AddNestedScene rejects cycles)
+//  12. Prefab compatibility: legacy Instantiate semantics unchanged;
+//      ToPackedScene / SceneBuilder::WithPrefab bridges
 // =============================================================================
 #include "core/scene/SceneTree.h"
 #include "core/scene/PackedScene.h"
@@ -191,6 +199,147 @@ int main() {
     // PChild local pos (5,0,0) under identity root -> global (5,0,0)
     SceneNode::Ptr instChild = instRoot->GetChild(0);
     CHECK(PosNear(instChild->GetGlobalTransform().position, 5.0f, 0.0f, 0.0f));
+
+    // -------------------------------------------------------------------------
+    // 9) PackedScene nesting: Inline another scene -> recursive unpack
+    // -------------------------------------------------------------------------
+    PackedScene nested = SceneBuilder()
+                             .Node("NRoot", [] {
+                                 Transform3D t;
+                                 t.position = {2.0f, 0.0f, 0.0f};
+                                 return t;
+                             }())
+                             .Node("NChild", [] {
+                                 Transform3D t;
+                                 t.position = {3.0f, 0.0f, 0.0f};
+                                 return t;
+                             }())
+                             .Build();
+    CHECK(nested.GetNodeCount() == 2);
+    CHECK(nested.GetNode(0).name == "NRoot");
+    CHECK(nested.GetNode(1).name == "NChild");
+
+    Transform3D instLocal;
+    instLocal.position = {100.0f, 0.0f, 0.0f};
+    PackedScene outer = SceneBuilder()
+                            .Node("ORoot")
+                            .Inline(nested, "Inst", instLocal)
+                            .End()
+                            .Build();
+    CHECK(outer.GetNodeCount() == 2);
+    CHECK(outer.GetNode(1).IsNestedScene());
+
+    SceneNode::Ptr outerRoot = nullptr;
+    Entity outerEntity = outer.Instantiate(world, &outerRoot);
+    CHECK(outerEntity == outerRoot->GetEntity());
+    CHECK(outerRoot->GetName() == "ORoot");
+    CHECK(outerRoot->GetChildCount() == 1); // nested unpacked under ORoot
+
+    SceneNode::Ptr instNestedRoot = outerRoot->GetChild(0);
+    CHECK(instNestedRoot->GetName() == "Inst");            // per-instance override
+    CHECK(PosNear(instNestedRoot->GetLocalTransform().position, 100.0f, 0.0f, 0.0f)); // override
+    // Godot placement semantics: the reference transform REPLACES the nested
+    // root's local -> Inst global (100,0,0); NChild global (103,0,0) = 100 + 3.
+    CHECK(PosNear(instNestedRoot->GetGlobalTransform().position, 100.0f, 0.0f, 0.0f));
+    CHECK(instNestedRoot->GetChildCount() == 1);           // NChild followed the instance
+    SceneNode::Ptr instNestedChild = instNestedRoot->GetChild(0);
+    CHECK(instNestedChild->GetName() == "NChild");
+    CHECK(PosNear(instNestedChild->GetGlobalTransform().position, 103.0f, 0.0f, 0.0f)); // 100+3
+
+    // ECS stays in sync: the transform override landed in the entity's Transform3D
+    const Transform3D* nestedRootEcs = world.GetComponent<Transform3D>(instNestedRoot->GetEntity());
+    CHECK(nestedRootEcs != nullptr);
+    if (nestedRootEcs) {
+        CHECK(PosNear(nestedRootEcs->position, 100.0f, 0.0f, 0.0f));
+    }
+
+    // -------------------------------------------------------------------------
+    // 10) Reuse: instantiate the same scene again -> independent subtree;
+    //     InstantiateAsChild under an existing node
+    // -------------------------------------------------------------------------
+    SceneNode::Ptr secondRoot = nullptr;
+    Entity secondEntity = outer.Instantiate(world, &secondRoot);
+    CHECK(secondEntity != outerEntity);                    // distinct entities
+    CHECK(secondRoot != outerRoot);
+    CHECK(secondRoot->FindChild("Inst", true) != nullptr);
+    CHECK(PosNear(secondRoot->FindChild("Inst", true)->GetGlobalTransform().position,
+                  100.0f, 0.0f, 0.0f));
+
+    SceneNode::Ptr hostRoot = SceneNode::CreateRoot();
+    hostRoot->SetName("Host");
+    Entity asChildEntity = nested.InstantiateAsChild(world, hostRoot);
+    CHECK(asChildEntity.IsValid());
+    CHECK(hostRoot->GetChildCount() == 1);
+    CHECK(hostRoot->GetChild(0)->GetName() == "NRoot");
+    CHECK(hostRoot->GetChild(0)->GetChildCount() == 1);
+
+    // -------------------------------------------------------------------------
+    // 11) Nested-scene cycle guard: self and mutual references rejected
+    // -------------------------------------------------------------------------
+    PackedScene cycA;
+    cycA.AddNode(Transform3D{}, -1, "A");
+    CHECK(cycA.AddNestedScene(cycA) == -1);                // self reference rejected
+
+    PackedScene cycB;
+    cycB.AddNode(Transform3D{}, -1, "B");
+    CHECK(cycB.AddNestedScene(cycA) >= 0);                 // B -> A is fine
+    CHECK(cycA.AddNestedScene(cycB) == -1);                // A -> B -> A cycle rejected
+
+    // Instantiating a nested chain still terminates; same nested scene twice OK
+    PackedScene chainInner;
+    chainInner.AddNode(Transform3D{}, -1, "Inner");
+    PackedScene chainOuter;
+    chainOuter.AddNode(Transform3D{}, -1, "Outer");
+    CHECK(chainOuter.AddNestedScene(chainInner) >= 0);
+    CHECK(chainOuter.AddNestedScene(chainInner) >= 0);
+    CHECK(chainOuter.Instantiate(world).IsValid());
+
+    // -------------------------------------------------------------------------
+    // 12) Prefab compatibility: legacy semantics unchanged + bridges
+    // -------------------------------------------------------------------------
+    // Legacy Prefab path: creates ONE entity, applies With<T> appliers, does
+    // NOT force a Transform3D (pong relies on adding it afterwards).
+    struct TestTagComponent : public ComponentBase {
+        int value = 0;
+    };
+    Prefab legacy;
+    legacy.With<TestTagComponent>([](TestTagComponent& t) { t.value = 42; });
+    Entity legacyEntity = legacy.Instantiate(world);
+    CHECK(world.IsAlive(legacyEntity));
+    CHECK(world.HasComponent<TestTagComponent>(legacyEntity));
+    CHECK(!world.HasComponent<Transform3D>(legacyEntity)); // no forced transform
+    const TestTagComponent* tag = world.GetComponent<TestTagComponent>(legacyEntity);
+    CHECK(tag != nullptr && tag->value == 42);
+
+    // Bridge 1: Prefab::ToPackedScene -> single-node scene, components carried
+    PackedScene fromPrefab = legacy.ToPackedScene();
+    CHECK(fromPrefab.GetNodeCount() == 1);
+    Entity bridgedEntity = fromPrefab.Instantiate(world);
+    CHECK(bridgedEntity != legacyEntity);
+    const TestTagComponent* bridgedTag = world.GetComponent<TestTagComponent>(bridgedEntity);
+    CHECK(bridgedTag != nullptr && bridgedTag->value == 42);
+
+    // Bridge 2: SceneBuilder::WithPrefab splices prefab content as a child node
+    PackedScene fromBuilder = SceneBuilder()
+                                  .Node("PrefabHost")
+                                  .WithPrefab(legacy, "FromPrefab")
+                                  .End()
+                                  .Build();
+    CHECK(fromBuilder.GetNodeCount() == 2);
+    SceneNode::Ptr prefabHost = nullptr;
+    fromBuilder.Instantiate(world, &prefabHost);
+    CHECK(prefabHost != nullptr);
+    SceneNode::Ptr fromPrefabNode = prefabHost->FindChild("FromPrefab");
+    CHECK(fromPrefabNode != nullptr);
+    if (fromPrefabNode) {
+        const TestTagComponent* splicedTag = world.GetComponent<TestTagComponent>(fromPrefabNode->GetEntity());
+        CHECK(splicedTag != nullptr && splicedTag->value == 42);
+    }
+
+    // Prefab::Instantiate still works alongside all of the above
+    Entity legacyAgain = legacy.Instantiate(world);
+    CHECK(world.IsAlive(legacyAgain));
+    CHECK(world.GetComponent<TestTagComponent>(legacyAgain)->value == 42);
 
     // -------------------------------------------------------------------------
     if (g_failures == 0) {
