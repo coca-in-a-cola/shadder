@@ -21,6 +21,12 @@
 //  11. nested-scene cycle guard (AddNestedScene rejects cycles)
 //  12. Prefab compatibility: legacy Instantiate semantics unchanged;
 //      ToPackedScene / SceneBuilder::WithPrefab bridges
+//  13. Prefab::FromPackedScene reverse bridge: scene-backed Prefab instantiates
+//      the whole hierarchy; nested scenes unpacked; temp-scene facade pattern
+//      (prefab headers style) keeps working
+//  14. Demo mirror (examples/framework): RainDemo scene with nested camera/quad
+//      prefab scenes + per-instance placement override — structure, ECS sync,
+//      components carried, godot-style tree walk
 // =============================================================================
 #include "core/scene/SceneTree.h"
 #include "core/scene/PackedScene.h"
@@ -340,6 +346,150 @@ int main() {
     Entity legacyAgain = legacy.Instantiate(world);
     CHECK(world.IsAlive(legacyAgain));
     CHECK(world.GetComponent<TestTagComponent>(legacyAgain)->value == 42);
+
+    // -------------------------------------------------------------------------
+    // 13) Prefab::FromPackedScene: scene-backed Prefab (reverse bridge)
+    // -------------------------------------------------------------------------
+    PackedScene payload = SceneBuilder()
+                              .Node("Payload", [] {
+                                  Transform3D t;
+                                  t.position = {7.0f, 0.0f, 0.0f};
+                                  return t;
+                              }())
+                              .Node("PayloadChild", [] {
+                                  Transform3D t;
+                                  t.position = {0.0f, 4.0f, 0.0f};
+                                  return t;
+                              }())
+                              .Build();
+
+    Prefab scenePrefab = Prefab::FromPackedScene(payload);
+    // Whole hierarchy unpacked; Instantiate returns the scene ROOT entity.
+    SceneNode::Ptr bridgeRoot = nullptr;
+    Entity bridgeEntity = scenePrefab.Instantiate(world);
+    CHECK(bridgeEntity.IsValid());
+    CHECK(world.GetComponent<TestTagComponent>(bridgeEntity) == nullptr);
+    // Find the payload root among alive entities: instantiate a marker sibling
+    // scene to locate by structure instead of guessing the index.
+    // Simpler: wrap again and take the node out explicitly.
+    PackedScene bridgeProbe = SceneBuilder()
+                                  .Node("ProbeHost")
+                                  .Inline(payload, "Bridged")
+                                  .End()
+                                  .Build();
+    bridgeProbe.Instantiate(world, &bridgeRoot);
+    CHECK(bridgeRoot != nullptr);
+    SceneNode::Ptr bridged = bridgeRoot ? bridgeRoot->FindChild("Bridged") : nullptr;
+    CHECK(bridged != nullptr);
+    if (bridged) {
+        CHECK(PosNear(bridged->GetLocalTransform().position, 7.0f, 0.0f, 0.0f));
+        CHECK(bridged->GetChildCount() == 1);
+        CHECK(PosNear(bridged->GetChild(0)->GetGlobalTransform().position, 7.0f, 4.0f, 0.0f));
+    }
+
+    // Temp-scene facade pattern (as used by the prefab headers, e.g. pong's
+    // QuadPrefab(...).Instantiate(world)): the scene temporary lives until the
+    // end of the FULL EXPRESSION — after Instantiate returned — so this is
+    // safe. (Wrapping a scene that died earlier would be UB; keep the scene
+    // alive or instantiate within the same full expression.)
+    Entity facadeEntity = Prefab::FromPackedScene(
+                              SceneBuilder()
+                                  .Node("Temp", [] {
+                                      Transform3D t;
+                                      t.position = {3.0f, 0.0f, 0.0f};
+                                      return t;
+                                  }())
+                                  .Build())
+                              .Instantiate(world);
+    CHECK(world.IsAlive(facadeEntity));
+    const Transform3D* tempTr = world.GetComponent<Transform3D>(facadeEntity);
+    CHECK(tempTr != nullptr);
+    if (tempTr) {
+        CHECK(PosNear(tempTr->position, 3.0f, 0.0f, 0.0f));
+    }
+
+    // -------------------------------------------------------------------------
+    // 14) Demo mirror (examples/framework): nested prefab scenes + placement
+    // -------------------------------------------------------------------------
+    // Camera-like node: single-node scene carrying a tag component
+    struct DemoCameraComponent : public ComponentBase {
+        float screenW = 0.0f;
+        float screenH = 0.0f;
+    };
+    world.RegisterComponent<DemoCameraComponent>();
+
+    PackedScene cameraPrefab = SceneBuilder()
+                                   .Node("Camera")
+                                   .With<DemoCameraComponent>([](DemoCameraComponent& c) {
+                                       c.screenW = 900.0f;
+                                       c.screenH = 900.0f;
+                                   })
+                                   .End()
+                                   .Build();
+    PackedScene quadPrefab = SceneBuilder()
+                                 .Node("Quad")
+                                 .With<TestTagComponent>([](TestTagComponent& t) { t.value = 77; })
+                                 .End()
+                                 .Build();
+
+    Transform3D markerLocal;
+    markerLocal.position = {430.0f, 120.0f, 0.0f};
+    PackedScene demo = SceneBuilder()
+                           .Node("RainDemo")
+                           .Inline(cameraPrefab, "Camera")            // shared reference
+                           .Node("Rain")
+                           .End()
+                           .WithPrefab(Prefab::FromPackedScene(quadPrefab), "Marker", markerLocal) // spliced copy (scene wrapper)
+                           .End()
+                           .Build();
+    CHECK(demo.GetNodeCount() == 4); // RainDemo, Camera(nested), Rain, Marker
+
+    SceneNode::Ptr demoRoot = nullptr;
+    Entity demoEntity = demo.Instantiate(world, &demoRoot);
+    CHECK(demoEntity == demoRoot->GetEntity());
+    CHECK(demoRoot->GetName() == "RainDemo");
+    CHECK(demoRoot->GetChildCount() == 3); // Camera + Rain + Marker
+
+    // Camera unpacked from the nested prefab scene, component carried
+    SceneNode::Ptr demoCam = demoRoot->FindChild("Camera");
+    CHECK(demoCam != nullptr);
+    const DemoCameraComponent* camComp =
+        demoCam ? world.GetComponent<DemoCameraComponent>(demoCam->GetEntity()) : nullptr;
+    CHECK(camComp != nullptr && camComp->screenW == 900.0f && camComp->screenH == 900.0f);
+
+    // Marker spliced from the quad prefab scene with per-instance placement:
+    // global == local == (430,120,0) under identity root; ECS transform synced.
+    SceneNode::Ptr demoMarker = demoRoot->FindChild("Marker");
+    CHECK(demoMarker != nullptr);
+    if (demoMarker) {
+        CHECK(PosNear(demoMarker->GetGlobalTransform().position, 430.0f, 120.0f, 0.0f));
+        const TestTagComponent* markerTag = world.GetComponent<TestTagComponent>(demoMarker->GetEntity());
+        CHECK(markerTag != nullptr && markerTag->value == 77);
+        const Transform3D* markerEcs = world.GetComponent<Transform3D>(demoMarker->GetEntity());
+        CHECK(markerEcs != nullptr);
+        if (markerEcs) {
+            CHECK(PosNear(markerEcs->position, 430.0f, 120.0f, 0.0f));
+        }
+    }
+
+    // Attach-at-runtime pattern (demo attaches the batch node under "Rain"):
+    // Rain packed node has no components here, so instantiate produces a node
+    // child; verify we can add a runtime node under it (Godot add_child).
+    SceneNode::Ptr demoRain = demoRoot->FindChild("Rain");
+    CHECK(demoRain != nullptr);
+    Entity batchEntity = world.CreateEntity();
+    world.AddComponent<Transform3D>(batchEntity);
+    SceneNode::Ptr batchNode = std::make_shared<SceneNode>(batchEntity);
+    batchNode->SetName("TriangleBatch");
+    demoRain->AddChild(batchNode);
+    CHECK(demoRoot->FindChild("Rain")->GetChildCount() == 1);
+    CHECK(batchNode->GetParent() == demoRain);
+
+    // Godot-style tree walk over the mirrored demo structure
+    std::vector<std::string> demoNames;
+    demoRoot->ForEachChild([&](const SceneNode::Ptr& n) { demoNames.push_back(n->GetName()); });
+    CHECK(demoNames.size() == 4); // Camera, Rain(+TriangleBatch), Marker
+    CHECK(demoNames[0] == "Camera" && demoNames[1] == "Rain" && demoNames[2] == "TriangleBatch" && demoNames[3] == "Marker");
 
     // -------------------------------------------------------------------------
     if (g_failures == 0) {

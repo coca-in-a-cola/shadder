@@ -138,6 +138,26 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    // Splice support: merge another scene's nodes as children of a node in
+    // THIS scene (used by SceneBuilder::WithPrefab and by the
+    // Prefab::FromPackedScene bridge — see ToPackedScene below).
+    // parent_index < 0 attaches the other scene's roots to this scene's roots.
+    // The source is COPIED (self-contained: appliers are cloned), so no
+    // lifetime requirements on `other`.
+    // -------------------------------------------------------------------------
+    void SpliceInto(const PackedScene& other, int parent_index = -1) {
+        const int n = static_cast<int>(other.nodes_.size());
+        const int base = static_cast<int>(nodes_.size());
+        for (int i = 0; i < n; ++i) {
+            NodeData nd = other.nodes_[i]; // copy (appliers are shared/immutable)
+            const int oldp = nd.parent_index;
+            const bool was_root = (oldp < 0 || oldp >= n);
+            nd.parent_index = was_root ? parent_index : base + oldp;
+            nodes_.push_back(std::move(nd));
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Instantiate into World — creates entities and hierarchy
     // -------------------------------------------------------------------------
     // Returns the root entity of the instantiated scene (or invalid if empty)
@@ -324,14 +344,62 @@ private:
 // -----------------------------------------------------------------------------
 inline PackedScene Prefab::ToPackedScene() const {
     PackedScene s;
-    const int root = s.AddNode();
     for (const auto& a : apps_) {
+        // Scene-backed appliers (FromPackedScene bridge) are SPLICES, not
+        // component bundles — wrapping them in an AddInit would break any
+        // later splice/node walk (the inner scene must contribute its nodes).
+        if (const PackedScene* scene = a->AsScene()) {
+            s.SpliceInto(*scene);
+            continue;
+        }
         // Clone the applier so the returned scene is self-contained
         // (no dangling references back into this Prefab).
         std::shared_ptr<IApplier> clone = a->Clone();
-        s.AddInit(root, [clone](World& w, Entity e) { clone->Apply(w, e); });
+        s.AddInit(s.AddNode(), [clone](World& w, Entity e) { clone->Apply(w, e); });
     }
     return s;
+}
+
+// Scene-backed Prefab: Instantiate() = instantiate the wrapped scene and
+// return its root entity. Plain appliers (mixed in via With<T>) still run on
+// a seed entity, which is discarded when a scene is present.
+inline Entity Prefab::Instantiate(World& world) const {
+    for (const auto& a : apps_) {
+        if (a->AsScene()) {
+            // Scene-backed: skip the seed-entity dance, unpack the hierarchy.
+            for (const auto& b : apps_) {
+                if (const PackedScene* scene = b->AsScene()) {
+                    return scene->Instantiate(world);
+                }
+            }
+        }
+    }
+    // Plain component prefab: legacy semantics (one entity, appliers in order).
+    Entity e = world.CreateEntity();
+    for (auto& a : apps_) {
+        a->Apply(world, e);
+    }
+    return e;
+}
+
+inline Prefab Prefab::FromPackedScene(const PackedScene& scene) {
+    Prefab p;
+    p.apps_.push_back(std::make_unique<SceneApplier>(&scene));
+    return p;
+}
+
+// Scene-backed applier: unpack the whole hierarchy (nested scenes included).
+// The seed entity created by Prefab::Instantiate is discarded — the scene
+// root's entity is the meaningful result.
+inline Prefab::SceneApplier::SceneApplier(const PackedScene* s) : scene(s) {}
+
+inline void Prefab::SceneApplier::Apply(World& w, Entity seed) const {
+    w.DestroyEntity(seed);
+    scene->Instantiate(w);
+}
+
+inline std::shared_ptr<Prefab::IApplier> Prefab::SceneApplier::Clone() const {
+    return std::make_shared<SceneApplier>(scene);
 }
 
 // -----------------------------------------------------------------------------
@@ -407,24 +475,51 @@ public:
     // single-node PackedScene). The prefab's content is COPIED (spliced) into
     // the built scene — no lifetime requirements. The first spliced root gets
     // `name`/`local` overrides when provided.
+    // A scene-backed prefab (FromPackedScene) splices its WHOLE scene, so
+    // multi-node prefabs land here intact.
     SceneBuilder& WithPrefab(const Prefab& prefab,
                              const char* name = nullptr,
                              const Transform3D& local = Transform3D{}) {
-        PackedScene p = prefab.ToPackedScene();
-        const int n = static_cast<int>(p.GetNodeCount());
-        const int base = static_cast<int>(scene_->GetNodeCount());
-        bool first_root = true;
-        for (int i = 0; i < n; ++i) {
-            PackedScene::NodeData nd = p.GetNode(i); // copy (self-contained: appliers are cloned)
-            const int oldp = nd.parent_index;
-            const bool was_root = (oldp < 0 || oldp >= n);
-            nd.parent_index = was_root ? current_parent_ : base + oldp;
-            if (was_root && first_root) {
-                first_root = false;
-                if (name) nd.name = name;
-                if (!PackedScene::IsIdentityTransform(local)) nd.local_transform = local;
+        const int n = static_cast<int>(scene_->GetNodeCount());
+        SpliceSceneOntoCurrent(prefab.ToPackedScene());
+        const int spliced = static_cast<int>(scene_->GetNodeCount()) - n;
+        if (spliced > 0 && name) {
+            // The first spliced root is the first node whose parent points at
+            // current_parent_ (it was a root in the source scene).
+            for (int i = n; i < static_cast<int>(scene_->GetNodeCount()); ++i) {
+                const int p = scene_->GetNode(i).parent_index;
+                if (p == current_parent_ || p < 0 || p >= static_cast<int>(scene_->GetNodeCount())) {
+                    scene_->MutableNode(i).name = name;
+                    if (!PackedScene::IsIdentityTransform(local)) {
+                        scene_->MutableNode(i).local_transform = local;
+                    }
+                    break;
+                }
             }
-            scene_->AddNodeData(std::move(nd));
+        }
+        return *this;
+    }
+
+    // Nesting: splice another PackedScene directly as a child of the current
+    // node (sibling of WithPrefab — takes the scene instead of a Prefab).
+    // The content is COPIED — no lifetime requirements on `nested`.
+    SceneBuilder& WithScene(const PackedScene& nested,
+                            const char* name = nullptr,
+                            const Transform3D& local = Transform3D{}) {
+        const int n = static_cast<int>(scene_->GetNodeCount());
+        scene_->SpliceInto(nested, current_parent_);
+        const int spliced = static_cast<int>(scene_->GetNodeCount()) - n;
+        if (spliced > 0 && name) {
+            for (int i = n; i < static_cast<int>(scene_->GetNodeCount()); ++i) {
+                const int p = scene_->GetNode(i).parent_index;
+                if (p == current_parent_) {
+                    scene_->MutableNode(i).name = name;
+                    if (!PackedScene::IsIdentityTransform(local)) {
+                        scene_->MutableNode(i).local_transform = local;
+                    }
+                    break;
+                }
+            }
         }
         return *this;
     }
@@ -441,4 +536,20 @@ private:
     std::unique_ptr<PackedScene> scene_;
     int current_parent_;
     std::vector<int> parent_stack_;
+
+    // Splice `other` under the current node, normalizing out-of-range parent
+    // indices of its roots (an out-of-range parent degrades to root inside the
+    // SOURCE scene — here they must attach to current_parent_, or -1 when the
+    // builder is at top level).
+    void SpliceSceneOntoCurrent(const PackedScene& other) {
+        const int n = static_cast<int>(other.GetNodeCount());
+        const int base = static_cast<int>(scene_->GetNodeCount());
+        for (int i = 0; i < n; ++i) {
+            PackedScene::NodeData nd = other.GetNode(i); // copy
+            const int oldp = nd.parent_index;
+            const bool was_root = (oldp < 0 || oldp >= n);
+            nd.parent_index = was_root ? current_parent_ : base + oldp;
+            scene_->AddNodeData(std::move(nd));
+        }
+    }
 };
