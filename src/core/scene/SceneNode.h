@@ -3,6 +3,7 @@
 #include "core/ecs/World.h"
 #include "framework/modules/transform/Transform3D.h"
 #include <DirectXMath.h>
+#include <string>
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -14,36 +15,39 @@ class SceneTree;
 // SceneNode — Godot-style scene tree node
 // -----------------------------------------------------------------------------
 // Each node wraps an ECS Entity and maintains a parent/children hierarchy.
-// Transform propagation follows Godot: global_transform = parent.global * local
-// SceneNode is the HIERARCHY layer on top of ECS (Node3D over nodes in Godot terms).
-// ECS remains the source of truth for components and systems.
+// Transform propagation follows Godot: global = parent.global * local.
+// SceneNode is the HIERARCHY layer on top of ECS (analog of Node3D in Godot):
+// ECS remains the source of truth for components and systems; the node layer
+// only owns the parent/child graph and transform inheritance.
 // -----------------------------------------------------------------------------
 class SceneNode : public std::enable_shared_from_this<SceneNode> {
 public:
     using Ptr = std::shared_ptr<SceneNode>;
     using WeakPtr = std::weak_ptr<SceneNode>;
 
-    // Create a root node (no entity, just a container)
+    // Create a root node (no entity — pure container, analog of the viewport root)
     static Ptr CreateRoot() {
         return std::make_shared<SceneNode>(Entity{INVALID_ENTITY_INDEX, INVALID_GENERATION});
     }
 
-    // Create a node with an entity
+    // Create a node wrapping an existing entity
     explicit SceneNode(Entity entity) : entity_(entity) {}
 
-    // Non-copyable, movable
+    // Non-copyable
     SceneNode(const SceneNode&) = delete;
     SceneNode& operator=(const SceneNode&) = delete;
-    SceneNode(SceneNode&&) = default;
-    SceneNode& operator=(SceneNode&&) = default;
 
     // -------------------------------------------------------------------------
     // Hierarchy management
     // -------------------------------------------------------------------------
     void AddChild(Ptr child) {
-        if (!child) return;
-        if (child->parent_.lock()) {
-            child->parent_.lock()->RemoveChild(child);
+        if (!child || child.get() == this) return;
+        // Cycle guard: a node cannot become a descendant of its own subtree.
+        for (Ptr ancestor = shared_from_this(); ancestor; ancestor = ancestor->GetParent()) {
+            if (ancestor == child) return;
+        }
+        if (auto old = child->parent_.lock()) {
+            old->RemoveChild(child);
         }
         child->parent_ = shared_from_this();
         children_.push_back(child);
@@ -64,35 +68,49 @@ public:
     size_t GetChildCount() const { return children_.size(); }
     Ptr GetChild(size_t index) const { return (index < children_.size()) ? children_[index] : nullptr; }
 
-    // Find child by name (if entity has NameComponent - future extension)
-    Ptr FindChild(const char* /*name*/) const { return nullptr; }
+    // Find a direct child by name (recursive=true searches the whole subtree)
+    Ptr FindChild(const std::string& name, bool recursive = false) const {
+        for (const auto& child : children_) {
+            if (child->name_ == name) return child;
+            if (recursive) {
+                if (Ptr found = child->FindChild(name, true)) return found;
+            }
+        }
+        return nullptr;
+    }
 
     // -------------------------------------------------------------------------
-    // Entity access
+    // Entity access — entity <-> node binding
     // -------------------------------------------------------------------------
     Entity GetEntity() const { return entity_; }
     void SetEntity(Entity e) { entity_ = e; }
     bool HasEntity() const { return entity_.IsValid(); }
 
     // -------------------------------------------------------------------------
+    // Naming (Godot-style; used by FindChild)
+    // -------------------------------------------------------------------------
+    const std::string& GetName() const { return name_; }
+    void SetName(const std::string& name) { name_ = name; }
+
+    // -------------------------------------------------------------------------
     // Transform — local (relative to parent)
     // -------------------------------------------------------------------------
-    DirectX::XMFLOAT3& LocalPosition() { MarkTransformDirty(); return local_.position; }
-    DirectX::XMFLOAT4& LocalRotation() { MarkTransformDirty(); return local_.rotation; }
-    DirectX::XMFLOAT3& LocalScale()    { MarkTransformDirty(); return local_.scale; }
+    void LocalPosition(const DirectX::XMFLOAT3& v) { local_.position = v; MarkTransformDirty(); }
+    void LocalRotation(const DirectX::XMFLOAT4& q) { local_.rotation = q; MarkTransformDirty(); }
+    void LocalScale(const DirectX::XMFLOAT3& v)    { local_.scale = v; MarkTransformDirty(); }
 
     const DirectX::XMFLOAT3& LocalPosition() const { return local_.position; }
     const DirectX::XMFLOAT4& LocalRotation() const { return local_.rotation; }
     const DirectX::XMFLOAT3& LocalScale()    const { return local_.scale; }
 
-    // Local transform as Transform3D struct (for convenience)
-    Transform3D GetLocalTransform() const { return local_; }
+    // Local transform as Transform3D struct
+    const Transform3D& GetLocalTransform() const { return local_; }
     void SetLocalTransform(const Transform3D& t) { local_ = t; MarkTransformDirty(); }
 
     // -------------------------------------------------------------------------
-    // Global transform (world space) — computed from hierarchy
+    // Global transform (world space) — computed from the parent chain
     // -------------------------------------------------------------------------
-    // Global = Parent.Global * Local (like Godot)
+    // Global = Parent.Global * Local (like Godot global_transform)
     const Transform3D& GetGlobalTransform() const {
         if (transform_dirty_) {
             UpdateGlobalTransform();
@@ -100,7 +118,7 @@ public:
         return global_;
     }
 
-    // Force recompute (call after hierarchy changes)
+    // Force recompute on next access (called automatically on hierarchy/transform changes)
     void MarkTransformDirty() {
         if (!transform_dirty_) {
             transform_dirty_ = true;
@@ -113,9 +131,13 @@ public:
     // -------------------------------------------------------------------------
     // Tree operations
     // -------------------------------------------------------------------------
-    // Reparent to new parent (removes from old parent automatically)
+    // Reparent to a new parent (removes from the old parent automatically)
     void Reparent(Ptr new_parent) {
-        if (new_parent == shared_from_this()) return;
+        if (!new_parent || new_parent.get() == this) return;
+        // Cycle guard: cannot reparent under own descendant
+        for (Ptr ancestor = new_parent; ancestor; ancestor = ancestor->GetParent()) {
+            if (ancestor.get() == this) return;
+        }
         if (auto old = parent_.lock()) {
             old->RemoveChild(shared_from_this());
         }
@@ -129,7 +151,7 @@ public:
         }
     }
 
-    // Get root of this tree
+    // Root of this tree
     Ptr GetRoot() {
         Ptr current = shared_from_this();
         while (auto p = current->parent_.lock()) {
@@ -141,7 +163,7 @@ public:
     // Depth in tree (root = 0)
     int GetDepth() const {
         int depth = 0;
-        Ptr current = shared_from_this();
+        Ptr current = std::const_pointer_cast<SceneNode>(shared_from_this());
         while (auto p = current->parent_.lock()) {
             ++depth;
             current = p;
@@ -150,13 +172,13 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    // Traversal (Godot-style: depth-first, pre-order)
+    // Traversal (depth-first pre-order: node, then children left-to-right)
     // -------------------------------------------------------------------------
     template <typename Fn>
     void ForEachChild(Fn&& fn) {
         for (auto& child : children_) {
             fn(child);
-            child->ForEachChild(std::forward<Fn>(fn));
+            child->ForEachChild(fn);
         }
     }
 
@@ -164,13 +186,14 @@ public:
     void ForEachChild(Fn&& fn) const {
         for (const auto& child : children_) {
             fn(child);
-            child->ForEachChild(std::forward<Fn>(fn));
+            child->ForEachChild(fn);
         }
     }
 
     // -------------------------------------------------------------------------
-    // Sync with ECS: write global transform to entity's Transform3D component
-    // Call this before rendering/systems that need world transforms
+    // Sync with ECS: write global transform into the entity's Transform3D
+    // component. Call before systems/render that expect world transforms.
+    // ECS stays the runtime data plane; the node layer feeds it.
     // -------------------------------------------------------------------------
     void SyncToECS(World& world) const {
         if (!entity_.IsValid()) return;
@@ -180,7 +203,7 @@ public:
         }
     }
 
-    // Sync entire subtree
+    // Sync the entire subtree (pre-order)
     void SyncSubtreeToECS(World& world) const {
         SyncToECS(world);
         for (const auto& child : children_) {
@@ -189,38 +212,31 @@ public:
     }
 
 private:
-    // Recalculate global transform from parent
+    // Recalculate global transform from the parent chain (lazy, cached)
     void UpdateGlobalTransform() const {
         if (auto parent = parent_.lock()) {
-            // Global = Parent.Global * Local
             const Transform3D& parent_global = parent->GetGlobalTransform();
-            global_ = MultiplyTransforms(parent_global, local_);
+            global_ = MultiplyTransforms(local_, parent_global);
         } else {
             global_ = local_;
         }
         transform_dirty_ = false;
     }
 
-    // Matrix multiplication: parent * child (like Godot)
-    static Transform3D MultiplyTransforms(const Transform3D& parent, const Transform3D& child) {
+    // Compose global = local * parent (DirectXMath row-vector convention:
+    // v' = v * M, the leftmost factor applies first — local first, then parent).
+    // Same convention as InstancedRenderSystem (world = S * R * T).
+    static Transform3D MultiplyTransforms(const Transform3D& local, const Transform3D& parent) {
         using namespace DirectX;
 
-        // Parent matrix
-        XMMATRIX p_scale = XMMatrixScalingFromVector(XMLoadFloat3(&parent.scale));
-        XMMATRIX p_rot = XMMatrixRotationQuaternion(XMLoadFloat4(&parent.rotation));
-        XMMATRIX p_trans = XMMatrixTranslationFromVector(XMLoadFloat3(&parent.position));
-        XMMATRIX p_mat = p_scale * p_rot * p_trans;
+        XMMATRIX l_mat = XMMatrixScalingFromVector(XMLoadFloat3(&local.scale)) *
+                         XMMatrixRotationQuaternion(XMLoadFloat4(&local.rotation)) *
+                         XMMatrixTranslationFromVector(XMLoadFloat3(&local.position));
+        XMMATRIX p_mat = XMMatrixScalingFromVector(XMLoadFloat3(&parent.scale)) *
+                         XMMatrixRotationQuaternion(XMLoadFloat4(&parent.rotation)) *
+                         XMMatrixTranslationFromVector(XMLoadFloat3(&parent.position));
+        XMMATRIX result = l_mat * p_mat;
 
-        // Child matrix
-        XMMATRIX c_scale = XMMatrixScalingFromVector(XMLoadFloat3(&child.scale));
-        XMMATRIX c_rot = XMMatrixRotationQuaternion(XMLoadFloat4(&child.rotation));
-        XMMATRIX c_trans = XMMatrixTranslationFromVector(XMLoadFloat3(&child.position));
-        XMMATRIX c_mat = c_scale * c_rot * c_trans;
-
-        // Combined: parent * child
-        XMMATRIX result = p_mat * c_mat;
-
-        // Decompose back to TRS
         Transform3D out;
         XMVECTOR scale, rot, trans;
         XMMatrixDecompose(&scale, &rot, &trans, result);
@@ -233,11 +249,12 @@ private:
     Entity entity_{INVALID_ENTITY_INDEX, INVALID_GENERATION};
     WeakPtr parent_;
     std::vector<Ptr> children_;
+    std::string name_;
 
     // Local transform (relative to parent)
     Transform3D local_{};
 
-    // Cached global transform (world space)
+    // Cached global transform (world space), lazy evaluation
     mutable Transform3D global_{};
     mutable bool transform_dirty_ = true;
 };

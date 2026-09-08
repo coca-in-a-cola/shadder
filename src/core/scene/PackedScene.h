@@ -26,12 +26,11 @@ public:
     using ComponentInitFn = std::function<void(World&, Entity)>;
 
     struct NodeData {
-        Entity entity{INVALID_ENTITY_INDEX, INVALID_GENERATION}; // placeholder, assigned on instantiate
         std::string name; // optional name for finding nodes
         Transform3D local_transform{};
         std::vector<ComponentInitFn> component_inits;
         std::vector<NodeData> children;
-        
+
         // Parent index in the flat array (-1 for root)
         int parent_index = -1;
     };
@@ -99,7 +98,6 @@ public:
         std::vector<Entity> entities(nodes_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             entities[i] = world.CreateEntity();
-            nodes_[i].entity = entities[i]; // store for child refs (not serialized)
         }
 
         // Second pass: add components
@@ -108,17 +106,26 @@ public:
             for (const auto& init : nodes_[i].component_inits) {
                 init(world, e);
             }
-            // Apply local transform to entity's Transform3D
-            world.RegisterComponent<Transform3D>();
-            auto& tr = world.AddComponent<Transform3D>(e);
-            tr = nodes_[i].local_transform;
+            // Ensure the entity carries a Transform3D reflecting its local
+            // transform (skip if a component init already added one).
+            if (!world.HasComponent<Transform3D>(e)) {
+                world.AddComponent<Transform3D>(e) = nodes_[i].local_transform;
+            }
         }
 
         // Third pass: build SceneNode hierarchy mirroring the instance
         std::vector<SceneNode::Ptr> scene_nodes(nodes_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             scene_nodes[i] = std::make_shared<SceneNode>(entities[i]);
-            scene_nodes[i]->SetLocalTransform(nodes_[i].local_transform);
+            scene_nodes[i]->SetName(nodes_[i].name);
+            // ECS is the source of truth: if a component init already placed a
+            // Transform3D on the entity (possibly different from the packed
+            // local), mirror it on the node. Otherwise keep the packed local.
+            if (const Transform3D* tr = world.GetComponent<Transform3D>(entities[i])) {
+                scene_nodes[i]->SetLocalTransform(*tr);
+            } else {
+                scene_nodes[i]->SetLocalTransform(nodes_[i].local_transform);
+            }
         }
 
         // Link hierarchy
@@ -152,16 +159,23 @@ public:
             for (const auto& init : nodes_[i].component_inits) {
                 init(world, entities[i]);
             }
-            world.RegisterComponent<Transform3D>();
-            auto& tr = world.AddComponent<Transform3D>(entities[i]);
-            tr = nodes_[i].local_transform;
+            if (!world.HasComponent<Transform3D>(entities[i])) {
+                world.AddComponent<Transform3D>(entities[i]) = nodes_[i].local_transform;
+            }
         }
 
         // Build SceneNode hierarchy
         std::vector<SceneNode::Ptr> scene_nodes(nodes_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             scene_nodes[i] = std::make_shared<SceneNode>(entities[i]);
-            scene_nodes[i]->SetLocalTransform(nodes_[i].local_transform);
+            scene_nodes[i]->SetName(nodes_[i].name);
+            // Mirror the ECS transform when a component init already added one
+            // (ECS is the source of truth); fall back to the packed local.
+            if (const Transform3D* tr = world.GetComponent<Transform3D>(entities[i])) {
+                scene_nodes[i]->SetLocalTransform(*tr);
+            } else {
+                scene_nodes[i]->SetLocalTransform(nodes_[i].local_transform);
+            }
         }
 
         SceneNode::Ptr first_child = nullptr;
@@ -184,6 +198,9 @@ public:
 
     // Access node data for inspection
     const NodeData& GetNode(size_t index) const { return nodes_[index]; }
+
+    // Mutable access (used by SceneBuilder during construction)
+    NodeData& MutableNode(size_t index) { return nodes_[index]; }
 
 private:
     std::vector<NodeData> nodes_;
@@ -234,9 +251,7 @@ public:
     // Convenience: set transform on current node
     SceneBuilder& Transform(const Transform3D& t) {
         if (current_parent_ >= 0 && current_parent_ < static_cast<int>(scene_->GetNodeCount())) {
-            // Can't modify after creation easily, would need mutable access
-            // For now, set via With<Transform3D>
-            scene_->nodes_[current_parent_].local_transform = t;
+            scene_->MutableNode(current_parent_).local_transform = t;
         }
         return *this;
     }

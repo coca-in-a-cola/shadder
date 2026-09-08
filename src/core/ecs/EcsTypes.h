@@ -14,6 +14,12 @@ struct Entity {
   constexpr bool IsValid() const noexcept {
     return index != INVALID_ENTITY_INDEX && generation != INVALID_GENERATION;
   }
+  constexpr bool operator==(const Entity &other) const noexcept {
+    return index == other.index && generation == other.generation;
+  }
+  constexpr bool operator!=(const Entity &other) const noexcept {
+    return !(*this == other);
+  }
 };
 
 using ComponentTypeID = uint32_t;
