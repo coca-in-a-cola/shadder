@@ -1,0 +1,112 @@
+import os
+import sys
+import shutil
+
+BUILD_DIR = 'bin'
+PROGRAM_NAME = 'Katamari'
+DATA_DIR = 'data'
+
+REPO_ROOT = os.path.abspath(os.path.join(Dir('#').abspath, '..', '..'))
+
+def _copy_data(target, source, env):
+    dst = str(target[0])
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(str(source[0]), dst)
+    # Дотягиваем общие ассеты фреймворка (дефолтный шейдер и т.п.) в bin/data,
+    # чтобы пример не дублировал их у себя.
+    framework_data = os.path.join(REPO_ROOT, 'data')
+    if os.path.isdir(framework_data):
+        for name in os.listdir(framework_data):
+            src_file = os.path.join(framework_data, name)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, os.path.join(dst, name))
+
+sys.path.insert(0, REPO_ROOT)
+from scons.utility.scons_hints import *  # noqa: E402,F401,F403
+REPO_SRC = os.path.join(REPO_ROOT, 'src')
+REPO_INCLUDE = os.path.join(REPO_ROOT, 'include')
+REPO_DXTK_INCLUDE = os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'include')
+
+opts = Variables([], ARGUMENTS)
+opts.Add(BoolVariable("verbose", "Verbose output", False))
+opts.Add(BoolVariable("compiledb", "Generate compilation DB", False))
+opts.Add(BoolVariable("compiledb_gen_only", "Exit after DB gen", False))
+
+debug = ARGUMENTS.get('debug', '1')
+
+VariantDir(BUILD_DIR, 'src', duplicate=False)
+
+env = Environment(ENV=os.environ, TARGET_ARCH='x86_64')
+env['CC'] = 'clang-cl'
+env['CXX'] = 'clang-cl'
+
+env.Append(CPPPATH=[
+    REPO_SRC,
+    REPO_INCLUDE,
+    REPO_DXTK_INCLUDE,
+])
+
+env.Append(CPPDEFINES=['UNICODE', '_UNICODE', 'NOMINMAX'])
+env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+
+if debug == '1':
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Debug')])
+else:
+    env.Append(LIBPATH=[os.path.join(REPO_ROOT, 'thirdparty', 'directxtk', 'native', 'lib', 'x64', 'Release')])
+
+env.Append(LIBS=[
+    'user32', 'gdi32', 'ole32', 'kernel32',
+    'd3d11', 'dxgi', 'd3dcompiler', 'dxguid',
+])
+
+opts.Update(env)
+
+if env["compiledb"]:
+    env.Tool("compilation_db")
+    compiledb = env.CompilationDatabase(target="compile_commands.json")
+    env.Default(compiledb)
+    if not env["verbose"]:
+        env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
+
+framework_objects = []
+for root, dirs, files in os.walk(REPO_SRC):
+    dirs[:] = [d for d in dirs if d not in ('main', 'shared')]
+    dirs.sort()
+    for f in files:
+        if f.endswith('.cpp'):
+            src = os.path.join(root, f)
+            rel = os.path.relpath(src, REPO_SRC)
+            rel_base = os.path.splitext(rel)[0]
+            framework_objects.append(env.Object(
+                target=os.path.join(BUILD_DIR, rel_base + '.obj'),
+                source=src,
+            ))
+
+demo_sources = []
+local_base = Dir('src').abspath
+build_base = Dir(BUILD_DIR).abspath
+for root, dirs, files in os.walk(local_base):
+    dirs.sort()
+    for f in files:
+        if f.endswith('.cpp'):
+            rel = os.path.relpath(os.path.join(root, f), local_base)
+            demo_sources.append(File(os.path.join(build_base, rel)))
+
+prog = env.Program(
+    target=f'{BUILD_DIR}/{PROGRAM_NAME}',
+    source=demo_sources + framework_objects,
+)
+Default(prog)
+
+data_copy = env.Command(
+    os.path.join(BUILD_DIR, DATA_DIR),
+    DATA_DIR,
+    _copy_data,
+)
+Default(data_copy)
+
+if env["compiledb"] and env["compiledb_gen_only"]:
+    from SCons.Tool.compilation_db import write_compilation_db
+    write_compilation_db([env.File("compile_commands.json")], [], env)
+    env.Exit()
