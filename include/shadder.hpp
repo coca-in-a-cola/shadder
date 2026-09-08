@@ -29,6 +29,8 @@ namespace shadder {
     using ::Keys;
     using ::MaterialComponent;
     using ::MeshComponent;
+    using ::PhongMaterialComponent;
+    using ::DirectionalLightComponent;
     using ::MovementSystem;
     using ::Query;
     using ::RenderSystem;

@@ -3,6 +3,8 @@
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/modules/render/MeshComponent.h"
 #include "framework/modules/render/MaterialComponent.h"
+#include "framework/modules/render/PhongMaterialComponent.h"
+#include "framework/modules/render/DirectionalLightComponent.h"
 #include "framework/modules/render/RenderSystem.h"
 #include "framework/modules/render/ResourceLoader.h"
 #include "framework/modules/render/InstancedMeshComponent.h"
