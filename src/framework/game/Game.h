@@ -9,6 +9,11 @@
 #include <chrono>
 #include <memory>
 
+// ImGui forward declarations (headers included in .cpp)
+struct ImGuiContext;
+struct ImGuiIO;
+struct ImGuiViewport;
+
 class Game {
   public:
   Game();
@@ -26,6 +31,10 @@ class Game {
   void Update(float deltaTime);
   void Draw();
 
+  // ImGui access
+  ImGuiContext* GetImGuiContext() const { return imguiContext; }
+  bool IsImGuiInitialized() const { return imguiInitialized; }
+
   // Публичные геттеры
   [[nodiscard]] ID3D11Device *GetDevice() const { return device.Get(); }
   [[nodiscard]] ID3D11DeviceContext *GetContext() const { return context.Get(); }
@@ -42,6 +51,12 @@ class Game {
   virtual bool PrepareFrame();
   virtual void PrepareResources();
   virtual void RestoreTargets();
+
+  // ImGui initialization/shutdown
+  virtual bool InitializeImGui();
+  virtual void ShutdownImGui();
+  virtual void ImGuiNewFrame();
+  virtual void ImGuiRender();
 
   // Внутренние методы
   void UpdateInternal(float deltaTime);
@@ -74,4 +89,8 @@ class Game {
   std::chrono::time_point<std::chrono::steady_clock> startTime;
   float totalTime;
   unsigned int frameCount;
+
+  // ImGui
+  ImGuiContext* imguiContext = nullptr;
+  bool imguiInitialized = false;
 };
