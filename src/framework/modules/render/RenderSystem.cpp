@@ -64,9 +64,9 @@ void RenderSystem::OnUpdate(World& world, float) {
             XMStoreFloat3(&lightDir, forward);
         }
         // Нормализуем
-        XMVECTOR v = XMLoadFloat3(&lightDir);
-        v = XMVector3Normalize(v);
-        XMStoreFloat3(&lightDir, v);
+        DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&lightDir);
+        v = DirectX::XMVector3Normalize(v);
+        DirectX::XMStoreFloat3(&lightDir, v);
 
         LightBuffer lb = { lightDir, light->intensity, light->color, 0.0f };
         D3D11_BUFFER_DESC bd = { sizeof(LightBuffer), D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0 };
