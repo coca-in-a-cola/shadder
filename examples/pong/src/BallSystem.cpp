@@ -43,8 +43,8 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
 
     if (state->state == PongStateComponent::GAMEOVER) return;
 
-    // Update speed from difficulty curve
-    float speed = 300.0f * DifficultyCurve(state->ballHits);
+    // Update speed from difficulty curve (scaled by the ImGui multiplier)
+    float speed = 300.0f * state->speedMultiplier * DifficultyCurve(state->ballHits);
 
     // Find ball
     Transform3D* ballTr = nullptr;
@@ -90,7 +90,7 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
                            ballVel->velocity.y * ballVel->velocity.y);
         ballVel->velocity.x /= l;
         ballVel->velocity.y /= l;
-        if (state->score2 > 10) state->state = PongStateComponent::GAMEOVER;
+        if (state->score2 > state->targetScore) state->state = PongStateComponent::GAMEOVER;
         return;
     }
     if (nextX - ballSize_ * 0.5f > screenW_) {
@@ -106,17 +106,18 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
                            ballVel->velocity.y * ballVel->velocity.y);
         ballVel->velocity.x /= l;
         ballVel->velocity.y /= l;
-        if (state->score1 > 10) state->state = PongStateComponent::GAMEOVER;
+        if (state->score1 > state->targetScore) state->state = PongStateComponent::GAMEOVER;
         return;
     }
 
-    // Paddle collision (player paddle - left)
+    // Paddle collision (player paddle - left). Effective height = base * scale (ImGui).
     Query<Transform3D, PlayerPaddleTag> p1Q(world);
     p1Q.ForEach([&](Entity, Transform3D& tr, PlayerPaddleTag&) {
+        float paddleH = paddleH_ * tr.scale.y;
         if (ballVel->velocity.x < 0 && AABBOverlap(
                 nextX, nextY, ballSize_, ballSize_,
-                tr.position.x, tr.position.y, paddleW_, paddleH_)) {
-            float hitPos = (nextY - tr.position.y) / (paddleH_ * 0.5f);
+                tr.position.x, tr.position.y, paddleW_, paddleH)) {
+            float hitPos = (nextY - tr.position.y) / (paddleH * 0.5f);
             hitPos = std::max(-1.0f, std::min(1.0f, hitPos));
             float nx = 1.0f, ny = hitPos * 0.6f;
             float nl = std::sqrt(nx * nx + ny * ny);
@@ -126,13 +127,14 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
         }
     });
 
-    // Paddle collision (AI paddle - right)
+    // Paddle collision (AI paddle - right). Effective height = base * scale (ImGui).
     Query<Transform3D, AiPaddleTag> p2Q(world);
     p2Q.ForEach([&](Entity, Transform3D& tr, AiPaddleTag&) {
+        float paddleH = paddleH_ * tr.scale.y;
         if (ballVel->velocity.x > 0 && AABBOverlap(
                 nextX, nextY, ballSize_, ballSize_,
-                tr.position.x, tr.position.y, paddleW_, paddleH_)) {
-            float hitPos = (nextY - tr.position.y) / (paddleH_ * 0.5f);
+                tr.position.x, tr.position.y, paddleW_, paddleH)) {
+            float hitPos = (nextY - tr.position.y) / (paddleH * 0.5f);
             hitPos = std::max(-1.0f, std::min(1.0f, hitPos));
             float nx = -1.0f, ny = hitPos * 0.6f;
             float nl = std::sqrt(nx * nx + ny * ny);

@@ -13,6 +13,9 @@
 #include "PongComponents.h"
 #include "PaddleSystem.h"
 #include "BallSystem.h"
+#include "PongSettingsUI.h"
+#include "ScoreTextComponent.h"
+#include "ScoreTextSystem.h"
 
 #include "shared/prefabs/CameraPrefabs.h"
 #include "shared/prefabs/MeshPrefabs.h"
@@ -60,6 +63,7 @@ int main() {
     world.RegisterComponent<PlayerPaddleTag>();
     world.RegisterComponent<AiPaddleTag>();
     world.RegisterComponent<BallTag>();
+    world.RegisterComponent<ScoreTextComponent>();
 
     // Camera — 2D orthographic in screen pixels
     OrthoCameraPrefab(static_cast<float>(kScreenW),
@@ -108,8 +112,7 @@ int main() {
         stateEntity = e;
     }
 
-    // Score text entities (left and right)
-    Entity score1Entity, score2Entity;
+    // Score text entities (left and right), tagged for ScoreTextSystem
     {
         // Left score (score1) - centered at ~100px left of center
         Entity e = world.CreateEntity();
@@ -122,7 +125,7 @@ int main() {
         text.fontSize = 48.0f;
         text.hAlign = 0.5f; // center
         text.vAlign = 0.5f; // center
-        score1Entity = e;
+        world.AddComponent<ScoreTextComponent>(e).slot = 0;
     }
     {
         // Right score (score2) - centered at ~100px right of center
@@ -136,11 +139,10 @@ int main() {
         text.fontSize = 48.0f;
         text.hAlign = 0.5f; // center
         text.vAlign = 0.5f; // center
-        score2Entity = e;
+        world.AddComponent<ScoreTextComponent>(e).slot = 1;
     }
 
     // Message text entity (GO!, WINNER LEFT/RIGHT)
-    Entity messageEntity;
     {
         Entity e = world.CreateEntity();
         auto& tr = world.AddComponent<Transform3D>(e);
@@ -152,7 +154,7 @@ int main() {
         text.fontSize = 64.0f;
         text.hAlign = 0.5f;
         text.vAlign = 0.5f;
-        messageEntity = e;
+        world.AddComponent<ScoreTextComponent>(e).slot = 2;
     }
 
     // Register systems (manual — will be addressed later)
@@ -164,6 +166,8 @@ int main() {
                                      static_cast<float>(kScreenW),
                                      static_cast<float>(kScreenH),
                                      kPaddleW, kPaddleH, kBallSize);
+    world.RegisterSystem<PongSettingsUI>(SystemPhase::UPDATE, &game);
+    world.RegisterSystem<ScoreTextSystem>(SystemPhase::UPDATE);
 
     world.RegisterSystem<RenderSystem>(SystemPhase::RENDER, &game);
     world.RegisterSystem<TextRenderSystem>(SystemPhase::RENDER, &game);
@@ -171,46 +175,7 @@ int main() {
     // Создаём GPU-ресурсы из описаний (Mesh/Material) — один раз перед циклом.
     ResourceLoader::UploadAll(world, game.GetDevice());
 
-    std::cout << "[Pong] Game started! W/S to move left paddle.\n";
-
-    // Lambda to update score text from state
-    auto updateScoreText = [&](PongStateComponent& state) {
-        // Update score texts
-        if (auto* t1 = world.GetComponent<TextComponent>(score1Entity)) {
-            t1->text = std::to_string(state.score1);
-            t1->dirty = true;
-        }
-        if (auto* t2 = world.GetComponent<TextComponent>(score2Entity)) {
-            t2->text = std::to_string(state.score2);
-            t2->dirty = true;
-        }
-
-        // Update message text based on state
-        if (auto* msg = world.GetComponent<TextComponent>(messageEntity)) {
-            if (state.state == PongStateComponent::COOLDOWN) {
-                msg->text = "GO!";
-                msg->color = { 1.0f, 1.0f, 0.0f, 1.0f };
-            } else if (state.state == PongStateComponent::GAMEOVER) {
-                if (state.score1 > state.score2) {
-                    msg->text = "WINNER LEFT";
-                } else {
-                    msg->text = "WINNER RIGHT";
-                }
-                msg->color = { 0.0f, 1.0f, 0.0f, 1.0f }; // green
-            } else {
-                msg->text = "";
-            }
-            msg->dirty = true;
-        }
-    };
-
-    // Initial score update
-    {
-        Query<PongStateComponent> stateQ(world);
-        stateQ.ForEach([&](Entity, PongStateComponent& s) {
-            updateScoreText(s);
-        });
-    }
+    std::cout << "[Pong] Game started! W/S to move left paddle. F1 - settings.\n";
 
     game.Run();
 
