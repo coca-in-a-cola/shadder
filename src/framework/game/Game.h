@@ -80,6 +80,10 @@ class Game {
   Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain;
   Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
   Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetView;
+  // Depth-stencil: 3D-сцены (solar и т.п.) требуют корректного перекрытия
+  // объектов. 2D-примерам (pong) он не мешает — depth test для непрозрачных
+  // квадов по depth-буферу идентичен порядку отрисовки.
+  Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 
   // Ввод
   std::unique_ptr<InputDevice> inputDevice;

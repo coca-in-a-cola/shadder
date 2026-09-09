@@ -4,6 +4,7 @@
 #include "framework/game/Game.h"
 #include "framework/modules/camera/CameraComponent.h"
 #include <DirectXMath.h>
+#include <algorithm>
 
 // slot 1 collides with old RenderSystem VP (which used the same).
 // CameraSystem takes exclusive ownership of this slot.
@@ -60,9 +61,16 @@ void CameraSystem::OnUpdate(World &world, float) {
 								XMLoadFloat3(&cam->eye),
 								XMLoadFloat3(&cam->target),
 								XMLoadFloat3(&cam->up));
-				proj = XMMatrixPerspectiveFovLH(
-								cam->fovY, cam->aspect,
-								cam->nearZ, cam->farZ);
+				if (cam->projection == CameraComponent::Projection::ORTHO_WORLD) {
+						// 3D-орто в мировых единицах: fit по высоте, ширина = высота * aspect.
+						const float oh = std::max(0.001f, cam->orthoHeight);
+						proj = XMMatrixOrthographicLH(
+										oh * cam->aspect, oh, cam->nearZ, cam->farZ);
+				} else {
+						proj = XMMatrixPerspectiveFovLH(
+										cam->fovY, cam->aspect,
+										cam->nearZ, cam->farZ);
+				}
 		}
 		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 

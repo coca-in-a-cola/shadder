@@ -15,13 +15,18 @@
 //
 // projection — режим построения матрицы проекции:
 //   PERSPECTIVE — перспектива по fovY/aspect/nearZ/farZ (eye/target/up для View);
+//   ORTHO_WORLD — ортографика в мировых единицах (3D-орто, как в Godot):
+//                  View строится из eye/target/up (как у перспективы),
+//                  размеры окна в мировых единицах задают orthoWidth/orthoHeight
+//                  (fit по высоте; orthoWidth = orthoHeight * aspect). Полезно
+//                  для обзора сцены без перспективных искажений.
 //   ORTHO_SCREEN — ортографика в экранных пикселях с началом в левом-верхнем
 //                  углу и осью Y, направленной вниз (как в 2D). View = identity,
 //                  размеры берутся из окна (screenW/screenH обновляет CameraSystem).
 //                  Удобно для 2D-сцен в пиксельных координатах (дождь и т.п.).
 // -----------------------------------------------------------------------------
 struct CameraComponent final : public ComponentBase {
-    enum class Projection { PERSPECTIVE, ORTHO_SCREEN };
+    enum class Projection { PERSPECTIVE, ORTHO_WORLD, ORTHO_SCREEN };
 
     Projection projection = Projection::PERSPECTIVE;
 
@@ -38,6 +43,10 @@ struct CameraComponent final : public ComponentBase {
     // под размер окна. Стартовые значения — запасной вариант до первого кадра.
     float screenW = 1.0f;
     float screenH = 1.0f;
+
+    // Для ORTHO_WORLD: размер вьюпорта в мировых единицах (по высоте).
+    // Ширина выводится как orthoHeight * aspect. Зум = изменение orthoHeight.
+    float orthoHeight = 10.0f;
 
     bool active = true;
 };

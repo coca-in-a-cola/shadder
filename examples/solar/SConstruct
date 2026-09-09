@@ -13,6 +13,14 @@ def _copy_data(target, source, env):
     if os.path.isdir(dst):
         shutil.rmtree(dst)
     shutil.copytree(str(source[0]), dst)
+    # Дотягиваем общие ассеты фреймворка (дефолтный шейдер и т.п.) в bin/data,
+    # чтобы пример не дублировал их у себя.
+    framework_data = os.path.join(REPO_ROOT, 'data')
+    if os.path.isdir(framework_data):
+        for name in os.listdir(framework_data):
+            src_file = os.path.join(framework_data, name)
+            if os.path.isfile(src_file):
+                shutil.copy2(src_file, os.path.join(dst, name))
 
 sys.path.insert(0, REPO_ROOT)
 from scons.utility.scons_hints import *  # noqa: E402,F401,F403
@@ -61,29 +69,29 @@ if env["compiledb"]:
     if not env["verbose"]:
         env["COMPILATIONDB_COMSTR"] = "$GENCOMSTR"
 
-framework_cpp = [
-    'core/callable/callable.cpp',
-    'dev/display/DisplayWin32.cpp',
-    'dev/input/InputDevice.cpp',
-    'framework/game/Game.cpp',
-    'framework/modules/transform/register_types.cpp',
-    'framework/modules/render/register_types.cpp',
-    'framework/modules/render/RenderSystem.cpp',
-    'framework/modules/render/InstancedRenderSystem.cpp',
-    'framework/modules/physics/register_types.cpp',
-    'framework/modules/physics/MovementSystem.cpp',
-    'framework/modules/physics/CollisionSystem.cpp',
-    'framework/modules/camera/register_types.cpp',
-    'framework/modules/camera/CameraSystem.cpp',
-]
-
 framework_objects = []
-for rel in framework_cpp:
-    src = os.path.join(REPO_SRC, rel)
-    obj = os.path.join(BUILD_DIR, 'framework', rel.replace('/', '_') + '.obj')
-    framework_objects.append(env.Object(target=obj, source=src))
+for root, dirs, files in os.walk(REPO_SRC):
+    dirs[:] = [d for d in dirs if d not in ('main', 'shared')]
+    dirs.sort()
+    for f in files:
+        if f.endswith('.cpp'):
+            src = os.path.join(root, f)
+            rel = os.path.relpath(src, REPO_SRC)
+            rel_base = os.path.splitext(rel)[0]
+            framework_objects.append(env.Object(
+                target=os.path.join(BUILD_DIR, rel_base + '.obj'),
+                source=src,
+            ))
 
-demo_sources = Glob(f'{BUILD_DIR}/*.cpp')
+demo_sources = []
+local_base = Dir('src').abspath
+build_base = Dir(BUILD_DIR).abspath
+for root, dirs, files in os.walk(local_base):
+    dirs.sort()
+    for f in files:
+        if f.endswith('.cpp'):
+            rel = os.path.relpath(os.path.join(root, f), local_base)
+            demo_sources.append(File(os.path.join(build_base, rel)))
 
 prog = env.Program(
     target=f'{BUILD_DIR}/{PROGRAM_NAME}',
