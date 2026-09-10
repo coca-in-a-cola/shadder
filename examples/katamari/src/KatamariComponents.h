@@ -1,39 +1,56 @@
 #pragma once
 
+// -----------------------------------------------------------------------------
+// KatamariComponents — компоненты примера SH-S2 (Katamari Damacy).
+//
+// Godot-подход: данные — в компонентах, поведение — в системах.
+//   KatamariBallComponent  — катящийся шар игрока (радиус, скорость, рост);
+//   KatamariPickupComponent— объект на поле (радиус из геометрии, подобран?);
+//   KatamariStatsComponent — глобальное состояние игры (цель, прогресс);
+// Позиция/ориентация — в Transform3D (framework/modules/transform).
+//
+// Bounding sphere (ОБЯЗАТЕЛЬНО по спеке SH-S2 п.5): у каждого объекта сфера
+// из геометрии — KatamariPickupComponent::radius заполняется из
+// ObjMeshData::radius при создании, у шара — KatamariBallComponent::radius.
+// Проверка подбора = пересечение сфер.
+// -----------------------------------------------------------------------------
+
+#include "shadder.hpp"
+
 #include "core/ecs/Component.h"
+#include "framework/modules/render/ObjLoader.h"
 #include <DirectXMath.h>
+#include <vector>
 
-// Katamari ball component — the player-controlled rolling ball
-struct KatamariBallComponent final : public ComponentBase {
-    float radius = 0.5f;        // current radius of the ball
-    float mass = 1.0f;          // mass for physics
-    float moveSpeed = 5.0f;     // movement speed
-    float growthRate = 0.01f;   // how fast radius grows per pickup value
-    float maxRadius = 20.0f;    // maximum possible radius
+// Катящийся шар (игрок).
+struct KatamariBallComponent final : public shadder::ComponentBase {
+    float radius = 0.5f;        // текущий радиус шара (мировые единицы)
+    float moveSpeed = 6.0f;     // линейная скорость (растёт с размером)
+    float growPerPickup = 0.9f; // прирост радиуса на объект (масштабируется от размера)
+    DirectX::XMFLOAT2 moveInput = { 0.0f, 0.0f }; // (-1..1) x=вправо, y=вперёд
 };
 
-// Pickup object component — objects that can be picked up by the ball
-struct PickupObjectComponent final : public ComponentBase {
-    float radius = 0.5f;        // object's radius (from geometry)
-    bool pickedUp = false;      // whether already picked up
-    int value = 1;              // size/value contribution to ball growth
-    float stickOffset = 0.0f;   // vertical offset when stuck to ball
+// Нестандартная геометрия пикапа: OBJ/fallback-данные в пресете POS_NORMAL_COLOR.
+// ResourceLoader умеет только примитивы, поэтому эти буферы заливает
+// KatamariUploadSystem (см. KatamariUpload.h) один раз перед игровым циклом.
+struct KatamariCustomMesh final : public shadder::ComponentBase {
+    std::vector<ObjMeshData::Vertex> vertices;
+    std::vector<uint32_t> indices;
+    bool uploaded = false;
 };
 
-// Bounding sphere component — for collision detection
-struct BoundingSphereComponent final : public ComponentBase {
-    float radius = 1.0f;        // sphere radius in world units
-    DirectX::XMFLOAT3 offset = { 0.0f, 0.0f, 0.0f }; // offset from entity position
+// Объект, который шар может подобрать.
+struct KatamariPickupComponent final : public shadder::ComponentBase {
+    float radius = 0.3f;    // радиус bounding sphere из геометрии * scale
+    bool pickedUp = false;  // подобран?
+    float stuckAngle = 0.0f;// угол на поверхности шара (куда прилип)
+    float stuckHeight = 0.0f; // высота на поверхности шара
 };
 
-// Game state component — win/lose conditions, timer
-struct KatamariGameStateComponent final : public ComponentBase {
-    shadder::Entity ballEntity;       // reference to the ball entity
-    float targetRadius = 5.0f;        // win condition radius
-    float timeLimit = 300.0f;         // time limit in seconds
-    std::chrono::steady_clock::time_point startTime;
-    bool gameWon = false;
-    bool gameLost = false;
-    int objectsCollected = 0;
-    int totalObjects = 0;
+// Глобальное состояние игры.
+struct KatamariStatsComponent final : public shadder::ComponentBase {
+    shadder::Entity ballEntity{}; // ссылка на шар
+    int collected = 0;            // сколько подобрано
+    int total = 0;                // всего объектов на поле
+    bool won = false;             // цель: собрать всё (или почти всё)
 };
