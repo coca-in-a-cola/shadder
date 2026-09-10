@@ -7,6 +7,7 @@
 #include "framework/modules/render/DirectionalLightComponent.h"
 #include "framework/modules/render/RenderSystem.h"
 #include "framework/modules/render/ResourceLoader.h"
+#include "framework/modules/render/ObjLoader.h"
 #include "framework/modules/render/InstancedMeshComponent.h"
 #include "framework/modules/render/InstanceTag.h"
 #include "framework/modules/render/InstancedRenderSystem.h"

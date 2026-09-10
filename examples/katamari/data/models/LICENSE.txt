@@ -1,0 +1,10 @@
+Furniture Kit (2.0) — Kenney (www.kenney.nl)
+License: Creative Commons Zero (CC0)
+http://creativecommons.org/publicdomain/zero/1.0/
+
+Модели взяты из набора "Furniture Kit" (www.kenney.nl/assets/furniture-kit),
+лицензия CC0 — свободное использование без ограничений.
+
+Включённые модели (models/):
+  chair.obj, table.obj, toaster.obj, televisionModern.obj,
+  cardboardBoxClosed.obj, lampSquareFloor.obj, pottedPlant.obj, loungeSofa.obj
