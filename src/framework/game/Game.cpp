@@ -247,7 +247,12 @@ void Game::PrepareResources() {
 }
 
 void Game::RestoreTargets() {
-        context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+        if (depthStencilView) {
+                context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(),
+                                            depthStencilView.Get());
+        } else {
+                context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+        }
 
         D3D11_VIEWPORT viewport = {};
         viewport.Width = static_cast<float>(display->ClientWidth);
@@ -278,6 +283,24 @@ void Game::CreateBackBuffer() {
         res = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView);
         if (FAILED(res)) {
                 return;
+        }
+
+        // Depth-stencil буфер под размер back buffer (24-бит depth + 8 stencil).
+        D3D11_TEXTURE2D_DESC dsDesc = {};
+        dsDesc.Width = static_cast<UINT>(display ? display->ClientWidth : 1);
+        dsDesc.Height = static_cast<UINT>(display ? display->ClientHeight : 1);
+        dsDesc.MipLevels = 1;
+        dsDesc.ArraySize = 1;
+        dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsDesc.SampleDesc.Count = 1;
+        dsDesc.SampleDesc.Quality = 0;
+        dsDesc.Usage = D3D11_USAGE_DEFAULT;
+        dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> depthBuffer;
+        if (SUCCEEDED(device->CreateTexture2D(&dsDesc, nullptr, depthBuffer.GetAddressOf()))) {
+                device->CreateDepthStencilView(depthBuffer.Get(), nullptr,
+                                               depthStencilView.GetAddressOf());
         }
 
         // Установка render target и viewport
@@ -348,6 +371,7 @@ void Game::DestroyResources() {
         // Очистка D3D ресурсов
         context.Reset();
         renderTargetView.Reset();
+        depthStencilView.Reset();
         backBuffer.Reset();
         swapChain.Reset();
         device.Reset();
@@ -358,6 +382,7 @@ void Game::ScreenResized(int width, int height) {
         if (context) {
                 context->OMSetRenderTargets(0, nullptr, nullptr);
                 renderTargetView.Reset();
+                depthStencilView.Reset();
                 backBuffer.Reset();
 
                 DXGI_SWAP_CHAIN_DESC swapDesc;
