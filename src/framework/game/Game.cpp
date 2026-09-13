@@ -50,11 +50,15 @@ bool Game::Initialize(DisplayWin32 *inDisplay) {
         swapDesc.SampleDesc.Count = 1;
         swapDesc.SampleDesc.Quality = 0;
 
-        HRESULT res = D3D11CreateDeviceAndSwapChain(
+         UINT deviceFlags = 0;
+#if defined(_DEBUG)
+         deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+         HRESULT res = D3D11CreateDeviceAndSwapChain(
                         nullptr,
                         D3D_DRIVER_TYPE_HARDWARE,
                         nullptr,
-                        D3D11_CREATE_DEVICE_DEBUG,
+                        deviceFlags,
                         featureLevel,
                         1,
                         D3D11_SDK_VERSION,

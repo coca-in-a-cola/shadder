@@ -12,6 +12,7 @@ namespace shadder {
     using ::CollisionSystem;
     using ::ComponentBase;
     using ::ComponentTypeID;
+    using ::DirectionalLightComponent;
     using ::DisplayWin32;
     using ::Entity;
     using ::EntityGeneration;
@@ -22,6 +23,9 @@ namespace shadder {
     using ::INVALID_ENTITY_INDEX;
     using ::INVALID_GENERATION;
     using ::ISystem;
+    using ::ImGuiContext;
+    using ::ImGuiIO;
+    using ::ImGuiViewport;
     using ::InputDevice;
     using ::InstanceTag;
     using ::InstancedMeshComponent;
@@ -29,9 +33,10 @@ namespace shadder {
     using ::Keys;
     using ::MaterialComponent;
     using ::MeshComponent;
-    using ::PhongMaterialComponent;
-    using ::DirectionalLightComponent;
     using ::MovementSystem;
+    using ::ObjLoader;
+    using ::ObjMeshData;
+    using ::PhongMaterialComponent;
     using ::Query;
     using ::RenderSystem;
     using ::ResourceLoader;

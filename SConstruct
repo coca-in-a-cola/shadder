@@ -7,7 +7,7 @@ import zipfile
 import shutil
 
 BUILD_DIR = 'bin'
-PROGRAMM_NAME = 'SuperShadder'
+PROGRAMM_NAME = 'Launcher'
 DATA_DIR = 'data'
 
 # ---------------------------------------------------------
@@ -86,13 +86,19 @@ env.Append(CPPPATH=[
     '#/src',
     '#/include',
     '#/thirdparty/directxtk/include',
+    '#/thirdparty/imgui',
+    '#/thirdparty/imgui/backends',
 ])
 
 # UNICODE support (needed for wide-string Win32 APIs and D3DCompileFromFile)
-env.Append(CPPDEFINES=['UNICODE', '_UNICODE'])
+env.Append(CPPDEFINES=['UNICODE', '_UNICODE', 'NOMINMAX'])
 
 # Enable C++ exception handling and C++17
 env.Append(CCFLAGS=['/EHsc', '/std:c++17'])
+if debug == '1':
+    env.Append(CCFLAGS=['/Od', '/Zi', '/MDd'], CPPDEFINES=['_DEBUG'])
+else:
+    env.Append(CCFLAGS=['/O2', '/MD'], CPPDEFINES=['NDEBUG'])
 
 # Library paths
 if debug == '1':
@@ -152,6 +158,14 @@ if env["compiledb"]:
 collect_module_sources(env, env.module_sources, os.path.join(Dir('#').abspath, 'src'))
 
 # ---------------------------------------------------------
+# 3c. IMGUI SOURCES (общий хелпер, см. scons/utility/example_build.py)
+# ---------------------------------------------------------
+sys.path.insert(0, Dir('#').abspath)
+from scons.utility.example_build import collect_imgui_objects, add_run_target, add_data_copy  # noqa: E402
+
+env.module_sources += collect_imgui_objects(env, Dir('#').abspath, BUILD_DIR)
+
+# ---------------------------------------------------------
 # 3b. GENERATE NAMESPACE WRAPPER HEADER
 # ---------------------------------------------------------
 sys.path.insert(0, Dir('#').abspath)
@@ -182,11 +196,29 @@ wrapper_cmd = env.Command(
 env.Depends(env.module_sources, wrapper_cmd)
 
 # ---------------------------------------------------------
+# 3d. LAUNCHER (tools/launcher — визуальное демо: меню сборки
+#     и запуска примеров; не является example)
+# ---------------------------------------------------------
+launcher_sources = []
+launcher_src_base = os.path.join(Dir('#').abspath, 'tools', 'launcher', 'src')
+for root, dirs, files in os.walk(launcher_src_base):
+    dirs.sort()
+    for f in files:
+        if f.endswith('.cpp'):
+            src = os.path.join(root, f)
+            rel = os.path.relpath(src, launcher_src_base)
+            rel_base = os.path.splitext(rel)[0]
+            launcher_sources.append(env.Object(
+                target=os.path.join(BUILD_DIR, 'launcher', rel_base + '.obj'),
+                source=src,
+            ))
+
+# ---------------------------------------------------------
 # 4. FINAL PROGRAM
 # ---------------------------------------------------------
 prog = env.Program(
     target=f'{BUILD_DIR}/{PROGRAMM_NAME}',
-    source=env.module_sources,
+    source=env.module_sources + launcher_sources,
 )
 
 # Convenience alias
@@ -195,18 +227,10 @@ Default(prog)
 # ---------------------------------------------------------
 # 5. COPY DATA ASSETS
 # ---------------------------------------------------------
-def _copy_data(target, source, env):
-    dst = str(target[0])
-    if os.path.isdir(dst):
-        shutil.rmtree(dst)
-    shutil.copytree(str(source[0]), dst)
+data_copy = add_data_copy(env, BUILD_DIR, DATA_DIR)
 
-data_copy = env.Command(
-    os.path.join(BUILD_DIR, DATA_DIR),
-    DATA_DIR,
-    _copy_data,
-)
-Default(data_copy)
+# `scons run` — собрать assets, Launcher и запустить Launcher.
+add_run_target(env, prog, [data_copy])
 
 # After the build graph is fully populated, write the compilation DB and exit
 # if we only want the DB without compiling.

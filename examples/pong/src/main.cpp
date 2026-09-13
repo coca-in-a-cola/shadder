@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
+#include <cassert>
 #include <iostream>
 #include <string>
 
@@ -74,27 +75,30 @@ int main() {
     // Player paddle (left)
     {
         Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
-        auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kPaddleW * 0.5f + 10.0f, kScreenH * 0.5f, 0.0f };
-        tr.scale = { 1.0f, 1.0f, 1.0f };
+        auto* tr = world.GetComponent<Transform3D>(e);
+        assert(tr != nullptr);
+        tr->position = { kPaddleW * 0.5f + 10.0f, kScreenH * 0.5f, 0.0f };
+        tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<PlayerPaddleTag>(e);
     }
 
     // AI paddle (right)
     {
         Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
-        auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kScreenW - kPaddleW * 0.5f - 10.0f, kScreenH * 0.5f, 0.0f };
-        tr.scale = { 1.0f, 1.0f, 1.0f };
+        auto* tr = world.GetComponent<Transform3D>(e);
+        assert(tr != nullptr);
+        tr->position = { kScreenW - kPaddleW * 0.5f - 10.0f, kScreenH * 0.5f, 0.0f };
+        tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<AiPaddleTag>(e);
     }
 
     // Ball
     {
         Entity e = QuadPrefab(kBallSize, kBallSize, white).Instantiate(world);
-        auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kScreenW * 0.5f, kScreenH * 0.5f, 0.0f };
-        tr.scale = { 1.0f, 1.0f, 1.0f };
+        auto* tr = world.GetComponent<Transform3D>(e);
+        assert(tr != nullptr);
+        tr->position = { kScreenW * 0.5f, kScreenH * 0.5f, 0.0f };
+        tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<BallTag>(e);
 
         auto& vel = world.AddComponent<VelocityComponent>(e);

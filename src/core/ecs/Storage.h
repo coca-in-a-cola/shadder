@@ -83,4 +83,3 @@ class SparseSetStorage final : public IComponentStorage {
   std::vector<uint32_t> sparse_;         // sparse mapping entity -> dense index (or INVALID_INDEX)
 };
 
-

@@ -12,10 +12,10 @@
 //     OrthoCameraPrefab(w, h).Instantiate(world)  // one entity + CameraComponent
 // (pong keeps using them; see SH-0 zone).
 //
-// NOTE ( lifetime ): SceneApplier captures the scene BY POINTER (shared
-// reference, Godot instanced-scene semantics). A scene-backed Prefab must not
-// outlive the scene it wraps — keep the scene alive as long as the prefab is
-// instantiated (e.g. bind to a temporary Prefab or to a longer-lived scene).
+// NOTE ( lifetime ): FromPackedScene COPIES the scene, so the facade
+// does not depend on the temporary returned by the canonical builders.
+// Nested scenes added via SceneBuilder::Inline remain SHARED BY POINTER —
+// a referenced scene must outlive every Instantiate() of the built scene.
 // -----------------------------------------------------------------------------
 
 #include "core/prefab/Prefab.h"

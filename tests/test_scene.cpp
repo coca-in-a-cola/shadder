@@ -308,6 +308,9 @@ int main() {
     struct TestTagComponent : public ComponentBase {
         int value = 0;
     };
+    struct TestValueComponent : public ComponentBase {
+        int value = 0;
+    };
     Prefab legacy;
     legacy.With<TestTagComponent>([](TestTagComponent& t) { t.value = 42; });
     Entity legacyEntity = legacy.Instantiate(world);
@@ -316,6 +319,16 @@ int main() {
     CHECK(!world.HasComponent<Transform3D>(legacyEntity)); // no forced transform
     const TestTagComponent* tag = world.GetComponent<TestTagComponent>(legacyEntity);
     CHECK(tag != nullptr && tag->value == 42);
+
+    // A multi-component Prefab must remain one ECS entity after conversion.
+    Prefab multi;
+    multi.With<TestTagComponent>([](TestTagComponent& t) { t.value = 7; });
+    multi.With<TestValueComponent>([](TestValueComponent& v) { v.value = 9; });
+    PackedScene multiScene = multi.ToPackedScene();
+    CHECK(multiScene.GetNodeCount() == 1);
+    Entity multiEntity = multiScene.Instantiate(world);
+    CHECK(world.GetComponent<TestTagComponent>(multiEntity)->value == 7);
+    CHECK(world.GetComponent<TestValueComponent>(multiEntity)->value == 9);
 
     // Bridge 1: Prefab::ToPackedScene -> single-node scene, components carried
     PackedScene fromPrefab = legacy.ToPackedScene();
@@ -369,6 +382,13 @@ int main() {
     Entity bridgeEntity = scenePrefab.Instantiate(world);
     CHECK(bridgeEntity.IsValid());
     CHECK(world.GetComponent<TestTagComponent>(bridgeEntity) == nullptr);
+
+    // Scene-backed Prefab keeps scene Transform3D contract with extra appliers.
+    Prefab mixedScenePrefab = Prefab::FromPackedScene(payload);
+    mixedScenePrefab.With<TestTagComponent>([](TestTagComponent& t) { t.value = 88; });
+    Entity mixedEntity = mixedScenePrefab.Instantiate(world);
+    CHECK(world.HasComponent<Transform3D>(mixedEntity));
+    CHECK(world.GetComponent<TestTagComponent>(mixedEntity)->value == 88);
     // Find the payload root among alive entities: instantiate a marker sibling
     // scene to locate by structure instead of guessing the index.
     // Simpler: wrap again and take the node out explicitly.

@@ -344,18 +344,39 @@ private:
 // -----------------------------------------------------------------------------
 inline PackedScene Prefab::ToPackedScene() const {
     PackedScene s;
+    const PackedScene* scene = nullptr;
     for (const auto& a : apps_) {
-        // Scene-backed appliers (FromPackedScene bridge) are SPLICES, not
-        // component bundles — wrapping them in an AddInit would break any
-        // later splice/node walk (the inner scene must contribute its nodes).
-        if (const PackedScene* scene = a->AsScene()) {
-            s.SpliceInto(*scene);
-            continue;
+        if (a->AsScene()) {
+            scene = a->AsScene();
+            break;
         }
-        // Clone the applier so the returned scene is self-contained
-        // (no dangling references back into this Prefab).
+    }
+
+    if (scene) {
+        s.SpliceInto(*scene);
+        int root = -1;
+        for (int i = 0; i < static_cast<int>(s.GetNodeCount()); ++i) {
+            const auto& node = s.GetNode(i);
+            if (node.parent_index < 0 || node.parent_index >= static_cast<int>(s.GetNodeCount())) {
+                root = i;
+                break;
+            }
+        }
+        if (root >= 0) {
+            for (const auto& a : apps_) {
+                if (a->AsScene()) continue;
+                std::shared_ptr<IApplier> clone = a->Clone();
+                s.AddInit(root, [clone](World& w, Entity e) { clone->Apply(w, e); });
+            }
+        }
+        return s;
+    }
+
+    // Plain prefab: all appliers belong to one root entity.
+    const int root = s.AddNode();
+    for (const auto& a : apps_) {
         std::shared_ptr<IApplier> clone = a->Clone();
-        s.AddInit(s.AddNode(), [clone](World& w, Entity e) { clone->Apply(w, e); });
+        s.AddInit(root, [clone](World& w, Entity e) { clone->Apply(w, e); });
     }
     return s;
 }
@@ -364,15 +385,24 @@ inline PackedScene Prefab::ToPackedScene() const {
 // return its root entity. Plain appliers (mixed in via With<T>) still run on
 // a seed entity, which is discarded when a scene is present.
 inline Entity Prefab::Instantiate(World& world) const {
+    const PackedScene* scene = nullptr;
+    bool has_plain_applier = false;
     for (const auto& a : apps_) {
         if (a->AsScene()) {
-            // Scene-backed: skip the seed-entity dance, unpack the hierarchy.
-            for (const auto& b : apps_) {
-                if (const PackedScene* scene = b->AsScene()) {
-                    return scene->Instantiate(world);
-                }
-            }
+            if (!scene) scene = a->AsScene();
+        } else {
+            has_plain_applier = true;
         }
+    }
+    if (scene) {
+        // Build mixed scene-backed prefabs through PackedScene so extra
+        // component initializers run before Transform3D fallback, avoiding a
+        // second AddComponent on the scene root.
+        PackedScene combined = has_plain_applier ? ToPackedScene() : *scene;
+        SceneNode::Ptr root;
+        Entity entity = combined.Instantiate(world, &root);
+        if (root) scene_instances_.push_back(std::move(root));
+        return entity;
     }
     // Plain component prefab: legacy semantics (one entity, appliers in order).
     Entity e = world.CreateEntity();
@@ -384,14 +414,19 @@ inline Entity Prefab::Instantiate(World& world) const {
 
 inline Prefab Prefab::FromPackedScene(const PackedScene& scene) {
     Prefab p;
-    p.apps_.push_back(std::make_unique<SceneApplier>(&scene));
+    // Копия сцены: аргумент часто является временным объектом
+    // (OrthoCameraPrefab(w, h) и т.п.) — сырой указатель давал бы
+    // dangling pointer сразу после возврата из фабрики.
+    p.apps_.push_back(std::make_unique<SceneApplier>(
+        std::make_shared<const PackedScene>(scene)));
     return p;
 }
 
 // Scene-backed applier: unpack the whole hierarchy (nested scenes included).
 // The seed entity created by Prefab::Instantiate is discarded — the scene
 // root's entity is the meaningful result.
-inline Prefab::SceneApplier::SceneApplier(const PackedScene* s) : scene(s) {}
+inline Prefab::SceneApplier::SceneApplier(std::shared_ptr<const PackedScene> s)
+    : scene(std::move(s)) {}
 
 inline void Prefab::SceneApplier::Apply(World& w, Entity seed) const {
     w.DestroyEntity(seed);

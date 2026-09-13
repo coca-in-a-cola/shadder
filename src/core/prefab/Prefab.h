@@ -2,6 +2,7 @@
 
 #include "core/ecs/EcsTypes.h"
 #include "core/ecs/World.h"
+#include "core/scene/SceneNode.h"
 #include <memory>
 #include <vector>
 
@@ -56,7 +57,7 @@ public:
 
     // Instantiate into World.
     // Plain component prefab: creates ONE entity and applies With<T> appliers
-    // in order (no forced Transform3D — callers may add their own).
+    // in order. Scene-backed prefabs always add Transform3D per node.
     // Scene-backed prefab (FromPackedScene): instantiates the WHOLE scene
     // hierarchy (nested scenes included) and returns the scene root's entity.
     // Defined in PackedScene.h (needs the complete PackedScene type).
@@ -70,8 +71,9 @@ public:
     // Reverse bridge: wrap an existing PackedScene as a Prefab. Instantiate()
     // then behaves like scene.Instantiate(): the whole hierarchy is unpacked
     // (nested scenes included) and the scene root's entity is returned.
-    // The scene is captured BY POINTER (shared reference, Godot instanced-
-    // scene semantics) — it must outlive every Instantiate() of this Prefab.
+    // The scene is COPIED — the Prefab does not depend on the argument's
+    // lifetime (call sites routinely pass a temporary, e.g.
+    // OrthoCameraPrefab(w, h).Instantiate(world)).
     // Defined in PackedScene.h.
     static Prefab FromPackedScene(const PackedScene& scene);
 
@@ -82,12 +84,15 @@ private:
     // Scene-backed applier — declared here, methods defined in PackedScene.h
     // (Apply needs the complete PackedScene type).
     struct SceneApplier : IApplier {
-        const PackedScene* scene;
-        explicit SceneApplier(const PackedScene* s);
+        std::shared_ptr<const PackedScene> scene;
+        explicit SceneApplier(std::shared_ptr<const PackedScene> s);
         void Apply(World& w, Entity seed) const override;
         std::shared_ptr<IApplier> Clone() const override;
-        const PackedScene* AsScene() const override { return scene; }
+        const PackedScene* AsScene() const override { return scene.get(); }
     };
 
     std::vector<std::unique_ptr<IApplier>> apps_;
+
+    // Keep hierarchy metadata alive while this Prefab remains alive.
+    mutable std::vector<SceneNode::Ptr> scene_instances_;
 };
