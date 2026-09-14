@@ -14,6 +14,6 @@ class PongSettingsUI : public ISystem {
 
   private:
   Game* game_;
-  bool open_ = false;
+  bool open_ = true;
   bool f1Prev_ = false;
 };

@@ -41,13 +41,13 @@ void PongSettingsUI::OnUpdate(World& world, float) {
     // --- Draw the window ---
     if (open_) {
         ImGui::SetNextWindowSize(ImVec2(360.0f, 0.0f), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Pong Settings", &open_)) {
+        if (ImGui::Begin("Pong Settings")) {
             ImGui::Text("F1 - toggle this window");
             ImGui::SeparatorText("Rules");
 
             ImGui::SliderFloat("Ball speed", &speedMultiplier, 0.5f, 3.0f, "%.2fx");
             ImGui::SliderFloat("Paddle size", &paddleHeight, 60.0f, 240.0f, "%.0f px");
-            ImGui::SliderInt("Target score", &state->targetScore, 3, 30);
+            ImGui::SliderInt("Target score", &state->targetScore, 1, 30);
 
             ImGui::SeparatorText("Match");
             ImGui::Text("Score: %d - %d", state->score1, state->score2);

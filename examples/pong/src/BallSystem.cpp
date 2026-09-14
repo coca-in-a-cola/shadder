@@ -93,7 +93,7 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
                            ballVel->velocity.y * ballVel->velocity.y);
         ballVel->velocity.x /= l;
         ballVel->velocity.y /= l;
-        if (state->score2 > state->targetScore) state->state = PongStateComponent::GAMEOVER;
+        if (state->score2 == state->targetScore) state->state = PongStateComponent::GAMEOVER;
         return;
     }
     if (nextX - ballSize_ * 0.5f > screenW) {
@@ -109,7 +109,7 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
                            ballVel->velocity.y * ballVel->velocity.y);
         ballVel->velocity.x /= l;
         ballVel->velocity.y /= l;
-        if (state->score1 > state->targetScore) state->state = PongStateComponent::GAMEOVER;
+        if (state->score1 == state->targetScore) state->state = PongStateComponent::GAMEOVER;
         return;
     }
 

@@ -12,9 +12,9 @@ struct PongStateComponent final : public ComponentBase {
     int score1 = 0;
     int score2 = 0;
     int ballHits = 0;
-    int targetScore = 11;           // ImGui: win when score > targetScore
-    float speedMultiplier = 1.0f;   // ImGui: multiplies ball speed
-    float paddleScale = 1.0f;       // ImGui: paddle height multiplier (base 120 px)
+    int targetScore = 3;                // ImGui: win when score reaches targetScore
+    float speedMultiplier = 2.0f;       // ImGui: multiplies ball speed
+    float paddleScale = 165.0f / 120.0f; // ImGui: paddle height multiplier (base 120 px)
     std::chrono::steady_clock::time_point continueTime;
 };
 
