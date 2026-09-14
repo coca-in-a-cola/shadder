@@ -5,8 +5,7 @@ class Game;
 
 class PaddleSystem : public ISystem {
     Game* game_;
-    float screenH_;
 public:
-    PaddleSystem(Game* g, float screenH);
+    explicit PaddleSystem(Game* g);
     void OnUpdate(World& world, float deltaTime) override;
 };

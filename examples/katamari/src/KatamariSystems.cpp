@@ -179,7 +179,6 @@ void KatamariPickupSystem::OnUpdate(World& world, float) {
 
 void KatamariCameraSystem::OnUpdate(World& world, float dt) {
     auto* input = game_ ? game_->GetInputDevice() : nullptr;
-    auto* display = game_ ? game_->GetDisplay() : nullptr;
 
     // Зум колесом мыши.
     if (input) {

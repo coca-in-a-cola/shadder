@@ -12,8 +12,6 @@
 
 namespace {
 
-constexpr float kScreenW = 800.0f; // keep in sync with main.cpp
-constexpr float kScreenH = 800.0f;
 constexpr float kBasePaddleH = 120.0f; // QuadPrefab height in main.cpp
 
 } // namespace

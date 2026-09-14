@@ -27,23 +27,24 @@ int main() {
     using namespace rain_demo;
 
     HINSTANCE hInstance = GetModuleHandle(nullptr);
-    DisplayWin32 display(L"Framework Demo - Scene Rain", hInstance, kScreenW, kScreenH, RainWndProc);
-
     Game game;
     g_Game = &game;
-    if (!game.Initialize(&display)) {
+    if (!game.SetDisplay(std::make_unique<DisplayWin32>(L"Framework Demo - Scene Rain", hInstance, RainWndProc))
+                 .SetScreenSize({900, 900})
+                 .Initialize()) {
         std::cout << "Failed to initialize the game engine!" << '\n';
         return 1;
     }
 
     World& world = game.GetWorld();
+    const ScreenSize screenSize = game.GetScreenSize();
 
     // =========================================================================
     // 1) Вложенные префабы (PackedScene-механизм) — ЖИВУТ в main: сцена хранит
     //    на них shared-reference, они должны переживать Instantiate().
     // =========================================================================
-    PackedScene cameraPrefab = OrthoCameraScene(static_cast<float>(kScreenW),
-                                                static_cast<float>(kScreenH));
+    PackedScene cameraPrefab = OrthoCameraScene(static_cast<float>(screenSize.width),
+                                                static_cast<float>(screenSize.height));
     PackedScene quadPrefab = QuadScene(60.0f, 40.0f, {0.9f, 0.55f, 0.15f, 1.0f});
 
     // 2) Собрать всю демо-сцену как один PackedScene и инстанцировать в World.
@@ -90,9 +91,7 @@ int main() {
     world.RegisterSystem<CameraSystem>(SystemPhase::PRE_RENDER, &game);
     // UPDATE: сначала движение, затем телепорт упавших.
     world.RegisterSystem<MovementSystem>(SystemPhase::UPDATE);
-    world.RegisterSystem<FallTeleportSystem>(SystemPhase::UPDATE,
-                                             static_cast<float>(kScreenW),
-                                             static_cast<float>(kScreenH));
+    world.RegisterSystem<FallTeleportSystem>(SystemPhase::UPDATE, &game);
     // RENDER: единый instanced-рендер всех треугольников + RenderSystem для маркера.
     world.RegisterSystem<InstancedRenderSystem>(SystemPhase::RENDER, &game);
     world.RegisterSystem<RenderSystem>(SystemPhase::RENDER, &game);

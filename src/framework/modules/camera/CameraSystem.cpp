@@ -1,5 +1,4 @@
 #include "framework/modules/camera/CameraSystem.h"
-#include "dev/display/DisplayWin32.h"
 #include "core/ecs/Query.h"
 #include "framework/game/Game.h"
 #include "framework/modules/camera/CameraComponent.h"
@@ -16,8 +15,7 @@ void CameraSystem::OnUpdate(World &world, float) {
 		}
 		ID3D11DeviceContext *ctx = game_->GetContext();
 		ID3D11Device *device = game_->GetDevice();
-		DisplayWin32 *display = game_->GetDisplay();
-		if (!ctx || !device || !display) {
+		if (!ctx || !device || !game_->GetDisplay()) {
 				return;
 		}
 
@@ -35,8 +33,9 @@ void CameraSystem::OnUpdate(World &world, float) {
 		}
 
 		// Обновить размеры/aspect при ресайзе окна.
-		const int w = display->GetWidth();
-		const int h = display->GetHeight();
+		const ScreenSize screenSize = game_->GetScreenSize();
+		const int w = screenSize.width;
+		const int h = screenSize.height;
 		if (w > 0 && h > 0) {
 				cam->aspect = static_cast<float>(w) / static_cast<float>(h);
 				cam->screenW = static_cast<float>(w);

@@ -13,6 +13,7 @@ namespace shadder {
     using ::ComponentBase;
     using ::ComponentTypeID;
     using ::DirectionalLightComponent;
+    using ::Display;
     using ::DisplayWin32;
     using ::Entity;
     using ::EntityGeneration;
@@ -40,6 +41,7 @@ namespace shadder {
     using ::Query;
     using ::RenderSystem;
     using ::ResourceLoader;
+    using ::ScreenSize;
     using ::Signal;
     using ::SparseSetStorage;
     using ::SystemPhase;

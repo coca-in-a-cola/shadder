@@ -20,30 +20,56 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dwmapi.lib")
 
-Game::Game() : display(nullptr), totalTime(0.0f), frameCount(0), prevTime(std::chrono::steady_clock::now()), startTime(std::chrono::steady_clock::now()) {
+Game::Game() : totalTime(0.0f), frameCount(0), prevTime(std::chrono::steady_clock::now()), startTime(std::chrono::steady_clock::now()) {
 }
 
 Game::~Game() {
         DestroyResources();
 }
 
-bool Game::Initialize(DisplayWin32 *inDisplay) {
-        this->display = inDisplay;
+Game &Game::SetDisplay(std::unique_ptr<Display> inDisplay) {
+        ownedDisplay = std::move(inDisplay);
+        display = ownedDisplay.get();
+        return *this;
+}
+
+Game &Game::SetScreenSize(ScreenSize size) {
+        if (size.width > 0 && size.height > 0) {
+                screenSize = size;
+        }
+        return *this;
+}
+
+bool Game::Initialize(std::unique_ptr<Display> inDisplay) {
+        SetDisplay(std::move(inDisplay));
+        return Initialize();
+}
+
+bool Game::Initialize() {
+        if (!display || !display->Create(screenSize)) {
+                std::cout << "Display creation failed!\n";
+                return false;
+        }
+        screenSize = display->GetScreenSize();
+        pendingScreenSize = screenSize;
+        resizePending = false;
+        HWND hwnd = static_cast<HWND>(display->GetNativeHandle());
+        if (!hwnd) return false;
 
         // Инициализация D3D11 устройства
         D3D_FEATURE_LEVEL featureLevel[] = { D3D_FEATURE_LEVEL_11_1 };
 
         DXGI_SWAP_CHAIN_DESC swapDesc = {};
         swapDesc.BufferCount = 2;
-        swapDesc.BufferDesc.Width = display->ClientWidth;
-        swapDesc.BufferDesc.Height = display->ClientHeight;
+        swapDesc.BufferDesc.Width = screenSize.width;
+        swapDesc.BufferDesc.Height = screenSize.height;
         swapDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         swapDesc.BufferDesc.RefreshRate.Numerator = 60;
         swapDesc.BufferDesc.RefreshRate.Denominator = 1;
         swapDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
         swapDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
         swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        swapDesc.OutputWindow = display->hWnd;
+        swapDesc.OutputWindow = hwnd;
         swapDesc.Windowed = true;
         swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
         swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
@@ -73,8 +99,17 @@ bool Game::Initialize(DisplayWin32 *inDisplay) {
                 return false;
         }
 
+        Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+        Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
+        Microsoft::WRL::ComPtr<IDXGIFactory> factory;
+        if (SUCCEEDED(device.As(&dxgiDevice)) &&
+            SUCCEEDED(dxgiDevice->GetAdapter(adapter.GetAddressOf())) &&
+            SUCCEEDED(adapter->GetParent(IID_PPV_ARGS(factory.GetAddressOf())))) {
+                factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
+        }
+
         // Создание InputDevice
-        inputDevice = std::make_unique<InputDevice>(display->hWnd);
+        inputDevice = std::make_unique<InputDevice>(hwnd);
 
         // Initialize ECS modules explicitly (Godot-style)
         initialize_transform_module(ecsWorld);
@@ -125,12 +160,13 @@ void Game::Run() {
 
                                 WCHAR text[256];
                                 swprintf_s(text, L"FPS: %f", fps); // NOLINT(cppcoreguidelines-pro-type-vararg)
-                                SetWindowTextW(display->hWnd, text);
+                                SetWindowTextW(static_cast<HWND>(display->GetNativeHandle()), text);
 
                                 frameCount = 0;
                         }
 
                         // Подготовка кадра
+                        ApplyPendingResize();
                         if (PrepareFrame()) {
                                 Update(deltaTime);
                                 Draw();
@@ -144,15 +180,24 @@ void Game::Exit() {
         PostQuitMessage(0);
 }
 
-bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+bool Game::MessageHandler(void *nativeHandle, std::uintptr_t message,
+                          std::uintptr_t wParam, std::intptr_t lParam) {
+        HWND hWnd = static_cast<HWND>(nativeHandle);
+        const UINT msg = static_cast<UINT>(message);
+        const WPARAM nativeWParam = static_cast<WPARAM>(wParam);
+        const LPARAM nativeLParam = static_cast<LPARAM>(lParam);
+        const bool displayHandled = display && display->HandleNativeMessage(message, wParam, lParam);
+        SynchronizeDisplaySize();
+        if (displayHandled) return true;
+
         // Pass messages to ImGui first
-        if (imguiInitialized && ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+        if (imguiInitialized && ImGui_ImplWin32_WndProcHandler(hWnd, msg, nativeWParam, nativeLParam)) {
                 return true;
         }
 
         switch (msg) {
                 case WM_KEYDOWN: {
-                        if (static_cast<unsigned int>(wParam) == 27) // ESC
+                        if (static_cast<unsigned int>(nativeWParam) == 27) // ESC
                         {
                                 Exit();
                         }
@@ -161,11 +206,11 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 case WM_INPUT: {
                         if (inputDevice) {
                                 UINT dwSize = 0;
-                                GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+                                GetRawInputData((HRAWINPUT)nativeLParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
                                 LPBYTE lpb = new BYTE[dwSize];
                                 if (lpb == nullptr) return 0;
 
-                                if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
+                                if (GetRawInputData((HRAWINPUT)nativeLParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
                                         delete[] lpb;
                                         return 0;
                                 }
@@ -193,14 +238,6 @@ bool Game::MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                                 return 0;
                         }
                         break;
-                }
-                case WM_SIZE: {
-                        if (wParam != SIZE_MINIMIZED && display) {
-                                display->ClientWidth = LOWORD(lParam);
-                                display->ClientHeight = HIWORD(lParam);
-                                ScreenResized(display->ClientWidth, display->ClientHeight);
-                        }
-                        return true;
                 }
                 default:
                         return false;
@@ -266,8 +303,8 @@ void Game::RestoreTargets() {
         }
 
         D3D11_VIEWPORT viewport = {};
-        viewport.Width = static_cast<float>(display->ClientWidth);
-        viewport.Height = static_cast<float>(display->ClientHeight);
+        viewport.Width = static_cast<float>(screenSize.width);
+        viewport.Height = static_cast<float>(screenSize.height);
         viewport.TopLeftX = 0;
         viewport.TopLeftY = 0;
         viewport.MinDepth = 0.0f;
@@ -298,8 +335,8 @@ void Game::CreateBackBuffer() {
 
         // Depth-stencil буфер под размер back buffer (24-бит depth + 8 stencil).
         D3D11_TEXTURE2D_DESC dsDesc = {};
-        dsDesc.Width = static_cast<UINT>(display ? display->ClientWidth : 1);
-        dsDesc.Height = static_cast<UINT>(display ? display->ClientHeight : 1);
+        dsDesc.Width = static_cast<UINT>(screenSize.width);
+        dsDesc.Height = static_cast<UINT>(screenSize.height);
         dsDesc.MipLevels = 1;
         dsDesc.ArraySize = 1;
         dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -333,7 +370,7 @@ bool Game::InitializeImGui() {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
         // Setup backends
-        if (!ImGui_ImplWin32_Init(display->hWnd)) {
+        if (!ImGui_ImplWin32_Init(display->GetNativeHandle())) {
                 std::cout << "ImGui_ImplWin32_Init failed!\n";
                 return false;
         }
@@ -390,7 +427,7 @@ void Game::DestroyResources() {
 
 void Game::ScreenResized(int width, int height) {
         // Пересоздание back buffer при изменении размера окна
-        if (context) {
+        if (context && swapChain && width > 0 && height > 0) {
                 context->OMSetRenderTargets(0, nullptr, nullptr);
                 renderTargetView.Reset();
                 depthStencilView.Reset();
@@ -410,4 +447,22 @@ void Game::ScreenResized(int width, int height) {
                         CreateBackBuffer();
                 }
         }
+}
+
+void Game::SynchronizeDisplaySize() {
+        if (!display) return;
+        const ScreenSize displaySize = display->GetScreenSize();
+        if (displaySize.width > 0 && displaySize.height > 0 &&
+            (displaySize.width != screenSize.width || displaySize.height != screenSize.height)) {
+                pendingScreenSize = displaySize;
+                resizePending = true;
+        }
+}
+
+void Game::ApplyPendingResize() {
+        SynchronizeDisplaySize();
+        if (!resizePending) return;
+        screenSize = pendingScreenSize;
+        resizePending = false;
+        ScreenResized(screenSize.width, screenSize.height);
 }

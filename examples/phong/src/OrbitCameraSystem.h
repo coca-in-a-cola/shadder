@@ -18,8 +18,7 @@ public:
         using namespace DirectX;
 
         auto* input = game_ ? game_->GetInputDevice() : nullptr;
-        auto* display = game_ ? game_->GetDisplay() : nullptr;
-        if (!input || !display) return;
+        if (!input || !game_->GetDisplay()) return;
 
         // --- Вращение: ЛКМ + мышь -----------------------------------------
         if (input->IsKeyDown(Keys::LeftButton)) {

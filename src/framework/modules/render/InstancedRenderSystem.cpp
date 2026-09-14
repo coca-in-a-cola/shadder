@@ -4,7 +4,6 @@
 #include "framework/modules/render/MaterialComponent.h"
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/game/Game.h"
-#include "dev/display/DisplayWin32.h"
 #include "core/ecs/Query.h"
 #include "core/ecs/World.h"
 
@@ -23,8 +22,7 @@ void InstancedRenderSystem::OnUpdate(World& world, float) {
     if (!game_) return;
     auto* ctx = game_->GetContext();
     auto* device = game_->GetDevice();
-    auto* display = game_->GetDisplay();
-    if (!ctx || !device || !display) return;
+    if (!ctx || !device || !game_->GetDisplay()) return;
 
     // Slot b1 (ViewProjection) заполняет CameraSystem в PRE_RENDER.
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dev/display/DisplayWin32.h"
+#include "dev/display/Display.h"
 #include "dev/input/InputDevice.h"
 #include "core/ecs/World.h"
 #include <d3d11.h>
@@ -20,12 +20,16 @@ class Game {
   virtual ~Game();
 
   // Инициализация и основной цикл
-  bool Initialize(DisplayWin32 *display);
+  Game &SetDisplay(std::unique_ptr<Display> inDisplay);
+  Game &SetScreenSize(ScreenSize size);
+  bool Initialize();
+  bool Initialize(std::unique_ptr<Display> inDisplay);
   void Run();
   void Exit();
 
-  // Обработка сообщений Windows
-  bool MessageHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  // Native message bridge used by current Win32 entry points.
+  bool MessageHandler(void *nativeHandle, std::uintptr_t message,
+                      std::uintptr_t wParam, std::intptr_t lParam);
 
   // Внутренние методы для управления кадрами
   void Update(float deltaTime);
@@ -41,10 +45,10 @@ class Game {
   [[nodiscard]] IDXGISwapChain *GetSwapChain() const { return swapChain.Get(); }
   [[nodiscard]] ID3D11RenderTargetView *GetRenderTargetView() const { return renderTargetView.Get(); }
   [[nodiscard]] InputDevice *GetInputDevice() const { return inputDevice.get(); }
-  [[nodiscard]] DisplayWin32 *GetDisplay() const { return display; }
+  [[nodiscard]] Display *GetDisplay() const { return display; }
+  [[nodiscard]] ScreenSize GetScreenSize() const { return screenSize; }
   [[nodiscard]] World &GetWorld() { return ecsWorld; }
   [[nodiscard]] const World &GetWorld() const { return ecsWorld; }
-  [[nodiscard]] HWND GetHWnd() const { return display ? display->hWnd : nullptr; }
 
   protected:
   // Виртуальные методы для переопределения в наследниках
@@ -61,6 +65,8 @@ class Game {
   // Внутренние методы
   void UpdateInternal(float deltaTime);
   void EndFrame();
+  void SynchronizeDisplaySize();
+  void ApplyPendingResize();
 
   // Создание/уничтожение ресурсов
   virtual void CreateBackBuffer();
@@ -69,8 +75,11 @@ class Game {
   // Экран изменил размер
   virtual void ScreenResized(int width, int height);
 
-  // Display (owned externally, not destroyed by Game)
-  DisplayWin32 *display;
+  std::unique_ptr<Display> ownedDisplay;
+  Display *display = nullptr;
+  ScreenSize screenSize{};
+  ScreenSize pendingScreenSize{};
+  bool resizePending = false;
   // ECS world – lives inside Game
   World ecsWorld;
 

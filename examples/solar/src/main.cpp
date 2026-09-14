@@ -34,9 +34,6 @@
 using namespace shadder;
 using namespace DirectX;
 
-static const int kScreenW = 1280;
-static const int kScreenH = 800;
-
 static Game* g_Game = nullptr;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -85,16 +82,17 @@ static Entity MakeBody(World& world, float radius, int slices, int stacks,
 
 int main() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
-    DisplayWin32 display(L"Solar System", hInstance, kScreenW, kScreenH, WndProc);
-
     Game game;
     g_Game = &game;
-    if (!game.Initialize(&display)) {
+    if (!game.SetDisplay(std::make_unique<DisplayWin32>(L"Solar System", hInstance, WndProc))
+                 .SetScreenSize({1280, 800})
+                 .Initialize()) {
         std::cout << "Failed to initialize the game engine!\n";
         return 1;
     }
 
     World& world = game.GetWorld();
+    const ScreenSize screenSize = game.GetScreenSize();
 
     // Пользовательские компоненты примера.
     world.RegisterComponent<SolarOrbit>();
@@ -102,7 +100,7 @@ int main() {
     world.RegisterComponent<SolarSettings>();
 
     // --- Камера: перспектива 45°, стартовый режим FPS -------------------------
-    PerspectiveCameraPrefab(XM_PIDIV4, static_cast<float>(kScreenW) / kScreenH,
+    PerspectiveCameraPrefab(XM_PIDIV4, static_cast<float>(screenSize.width) / screenSize.height,
                             0.1f, 500.0f)
         .Instantiate(world);
 

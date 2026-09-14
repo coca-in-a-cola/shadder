@@ -37,23 +37,24 @@ int main()
 {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
-    // Create the display window
-    DisplayWin32 display(L"LABY Launcher", hInstance, 820, 540, WndProc);
-
     // Create and initialize the Game
     Game game;
     g_Game = &game;
 
-    if (!game.Initialize(&display))
+    if (!game.SetDisplay(std::make_unique<DisplayWin32>(L"LABY Launcher", hInstance, WndProc))
+             .SetScreenSize({820, 540})
+             .Initialize())
     {
         std::cout << "Failed to initialize the game engine!" << '\n';
         return 1;
     }
 
     World& world = game.GetWorld();
+    const ScreenSize screenSize = game.GetScreenSize();
 
     // Пустая сцена: только камера — лаунчер рисует чистый backbuffer + ImGui.
-    OrthoCameraPrefab(820.0f, 540.0f).Instantiate(world);
+    OrthoCameraPrefab(static_cast<float>(screenSize.width),
+                      static_cast<float>(screenSize.height)).Instantiate(world);
 
     world.RegisterSystem<CameraSystem>(SystemPhase::PRE_RENDER, &game);
     world.RegisterSystem<LauncherUI>(SystemPhase::UPDATE, &game);

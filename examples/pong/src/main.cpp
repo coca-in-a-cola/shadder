@@ -24,8 +24,6 @@
 using namespace shadder;
 using namespace DirectX;
 
-static const int kScreenW = 800;
-static const int kScreenH = 800;
 static const float kPaddleW = 12.0f;
 static const float kPaddleH = 120.0f;
 static const float kBallSize = 10.0f;
@@ -48,16 +46,19 @@ int main() {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
 
     HINSTANCE hInstance = GetModuleHandle(nullptr);
-    DisplayWin32 display(L"Pong", hInstance, kScreenW, kScreenH, WndProc);
-
     Game game;
     g_Game = &game;
-    if (!game.Initialize(&display)) {
+    if (!game.SetDisplay(std::make_unique<DisplayWin32>(L"Pong", hInstance, WndProc))
+                 .SetScreenSize({800, 800})
+                 .Initialize()) {
         std::cout << "Failed to initialize the game engine!\n";
         return 1;
     }
 
     World& world = game.GetWorld();
+    const ScreenSize screenSize = game.GetScreenSize();
+    const float screenW = static_cast<float>(screenSize.width);
+    const float screenH = static_cast<float>(screenSize.height);
 
     // Register custom components not managed by prefabs
     world.RegisterComponent<PongStateComponent>();
@@ -67,8 +68,7 @@ int main() {
     world.RegisterComponent<ScoreTextComponent>();
 
     // Camera — 2D orthographic in screen pixels
-    OrthoCameraPrefab(static_cast<float>(kScreenW),
-                      static_cast<float>(kScreenH)).Instantiate(world);
+    OrthoCameraPrefab(screenW, screenH).Instantiate(world);
 
     XMFLOAT4 white = { 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -77,7 +77,7 @@ int main() {
         Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
         auto* tr = world.GetComponent<Transform3D>(e);
         assert(tr != nullptr);
-        tr->position = { kPaddleW * 0.5f + 10.0f, kScreenH * 0.5f, 0.0f };
+        tr->position = { kPaddleW * 0.5f + 10.0f, screenH * 0.5f, 0.0f };
         tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<PlayerPaddleTag>(e);
     }
@@ -87,7 +87,7 @@ int main() {
         Entity e = QuadPrefab(kPaddleW, kPaddleH, white).Instantiate(world);
         auto* tr = world.GetComponent<Transform3D>(e);
         assert(tr != nullptr);
-        tr->position = { kScreenW - kPaddleW * 0.5f - 10.0f, kScreenH * 0.5f, 0.0f };
+        tr->position = { screenW - kPaddleW * 0.5f - 10.0f, screenH * 0.5f, 0.0f };
         tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<AiPaddleTag>(e);
     }
@@ -97,7 +97,7 @@ int main() {
         Entity e = QuadPrefab(kBallSize, kBallSize, white).Instantiate(world);
         auto* tr = world.GetComponent<Transform3D>(e);
         assert(tr != nullptr);
-        tr->position = { kScreenW * 0.5f, kScreenH * 0.5f, 0.0f };
+        tr->position = { screenW * 0.5f, screenH * 0.5f, 0.0f };
         tr->scale = { 1.0f, 1.0f, 1.0f };
         world.AddComponent<BallTag>(e);
 
@@ -121,7 +121,7 @@ int main() {
         // Left score (score1) - centered at ~100px left of center
         Entity e = world.CreateEntity();
         auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kScreenW * 0.5f - 100.0f, kScreenH * 0.5f - 200.0f, 0.0f };
+        tr.position = { screenW * 0.5f - 100.0f, screenH * 0.5f - 200.0f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
         auto& text = world.AddComponent<TextComponent>(e);
         text.text = "0";
@@ -135,7 +135,7 @@ int main() {
         // Right score (score2) - centered at ~100px right of center
         Entity e = world.CreateEntity();
         auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kScreenW * 0.5f + 100.0f, kScreenH * 0.5f - 200.0f, 0.0f };
+        tr.position = { screenW * 0.5f + 100.0f, screenH * 0.5f - 200.0f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
         auto& text = world.AddComponent<TextComponent>(e);
         text.text = "0";
@@ -150,7 +150,7 @@ int main() {
     {
         Entity e = world.CreateEntity();
         auto& tr = world.AddComponent<Transform3D>(e);
-        tr.position = { kScreenW * 0.5f, kScreenH * 0.5f, 0.0f };
+        tr.position = { screenW * 0.5f, screenH * 0.5f, 0.0f };
         tr.scale = { 1.0f, 1.0f, 1.0f };
         auto& text = world.AddComponent<TextComponent>(e);
         text.text = "GO!";
@@ -164,14 +164,11 @@ int main() {
     // Register systems (manual — will be addressed later)
     world.RegisterSystem<CameraSystem>(SystemPhase::PRE_RENDER, &game);
 
-    world.RegisterSystem<PaddleSystem>(SystemPhase::UPDATE, &game,
-                                       static_cast<float>(kScreenH));
-    world.RegisterSystem<BallSystem>(SystemPhase::UPDATE,
-                                     static_cast<float>(kScreenW),
-                                     static_cast<float>(kScreenH),
-                                     kPaddleW, kPaddleH, kBallSize);
+    world.RegisterSystem<PaddleSystem>(SystemPhase::UPDATE, &game);
+    world.RegisterSystem<BallSystem>(SystemPhase::UPDATE, &game,
+                                      kPaddleW, kPaddleH, kBallSize);
     world.RegisterSystem<PongSettingsUI>(SystemPhase::UPDATE, &game);
-    world.RegisterSystem<ScoreTextSystem>(SystemPhase::UPDATE);
+    world.RegisterSystem<ScoreTextSystem>(SystemPhase::UPDATE, &game);
 
     world.RegisterSystem<RenderSystem>(SystemPhase::RENDER, &game);
     world.RegisterSystem<TextRenderSystem>(SystemPhase::RENDER, &game);

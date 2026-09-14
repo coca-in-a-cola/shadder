@@ -42,8 +42,6 @@ namespace rain_demo {
 // -----------------------------------------------------------------------------
 // Параметры демо
 // -----------------------------------------------------------------------------
-static const int kScreenW = 900;
-static const int kScreenH = 900;
 static const int kTriangleCount = 15000; // тысячи треугольников — один draw call
 static const float kTriHalfSize = 5.0f;  // полразмера треугольника в пикселях
 
@@ -58,19 +56,22 @@ inline bool PosNear(const DirectX::XMFLOAT3& p, float x, float y, float z,
 // со случайным X. Работает через ECS, в фазе UPDATE после MovementSystem.
 // -----------------------------------------------------------------------------
 class FallTeleportSystem : public ISystem {
-    float screenW_;
-    float screenH_;
+    Game* game_;
 public:
-    FallTeleportSystem(float w, float h) : screenW_(w), screenH_(h) {}
+    explicit FallTeleportSystem(Game* game) : game_(game) {}
 
     void OnUpdate(World& world, float) override {
+        if (!game_) return;
+        const ScreenSize screenSize = game_->GetScreenSize();
+        const float screenW = static_cast<float>(screenSize.width);
+        const float screenH = static_cast<float>(screenSize.height);
         const float margin = kTriHalfSize * 2.0f;
         Query<Transform3D, VelocityComponent> q(world);
         q.ForEach([&](Entity, Transform3D& tr, VelocityComponent&) {
             if (tr.position.y < -margin) {
                 // Появляемся над верхней кромкой со случайным X.
-                tr.position.y = screenH_ + margin;
-                tr.position.x = static_cast<float>(rand() % static_cast<int>(screenW_));
+                tr.position.y = screenH + margin;
+                tr.position.x = static_cast<float>(rand() % static_cast<int>(screenW));
             }
         });
     }
@@ -243,14 +244,15 @@ inline SceneNode::Ptr AttachRainInstances(Game& game, World& world,
     }
 
     // --- Треугольники: тысячи ECS-сущностей + привязка к батчу ---------------
+    const ScreenSize screenSize = game.GetScreenSize();
     srand(1234);
     for (int i = 0; i < kTriangleCount; ++i) {
         Entity e = world.CreateEntity();
 
         auto& tr = world.AddComponent<Transform3D>(e);
         tr.position = {
-            static_cast<float>(rand() % kScreenW),
-            static_cast<float>(rand() % (kScreenH * 2)), // часть стартует выше экрана
+            static_cast<float>(rand() % screenSize.width),
+            static_cast<float>(rand() % (screenSize.height * 2)), // часть стартует выше экрана
             0.0f
         };
         float angle = (static_cast<float>(rand()) / RAND_MAX) * DirectX::XM_2PI;

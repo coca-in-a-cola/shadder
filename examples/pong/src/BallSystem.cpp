@@ -2,16 +2,15 @@
 #include "PongComponents.h"
 #include "framework/modules/transform/Transform3D.h"
 #include "framework/modules/physics/VelocityComponent.h"
+#include "framework/game/Game.h"
 #include "core/ecs/Query.h"
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
 
-BallSystem::BallSystem(float screenW, float screenH,
-                       float paddleW, float paddleH,
+BallSystem::BallSystem(Game* game, float paddleW, float paddleH,
                        float ballSize)
-    : screenW_(screenW), screenH_(screenH),
-      paddleW_(paddleW), paddleH_(paddleH),
+    : game_(game), paddleW_(paddleW), paddleH_(paddleH),
       ballSize_(ballSize) {}
 
 float BallSystem::DifficultyCurve(int ballHits) {
@@ -25,6 +24,10 @@ static bool AABBOverlap(float ax, float ay, float aw, float ah,
 }
 
 void BallSystem::OnUpdate(World& world, float deltaTime) {
+    if (!game_) return;
+    const ScreenSize screenSize = game_->GetScreenSize();
+    const float screenW = static_cast<float>(screenSize.width);
+    const float screenH = static_cast<float>(screenSize.height);
     // Find state entity
     PongStateComponent* state = nullptr;
     Query<PongStateComponent> stateQ(world);
@@ -71,8 +74,8 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
     if (nextY - ballSize_ * 0.5f < 0.0f) {
         nextY = ballSize_ * 0.5f;
         ballVel->velocity.y = std::abs(ballVel->velocity.y);
-    } else if (nextY + ballSize_ * 0.5f > screenH_) {
-        nextY = screenH_ - ballSize_ * 0.5f;
+    } else if (nextY + ballSize_ * 0.5f > screenH) {
+        nextY = screenH - ballSize_ * 0.5f;
         ballVel->velocity.y = -std::abs(ballVel->velocity.y);
     }
 
@@ -82,8 +85,8 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
         state->ballHits = 0;
         state->state = PongStateComponent::COOLDOWN;
         state->continueTime = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-        ballTr->position.x = screenW_ / 2.0f;
-        ballTr->position.y = screenH_ / 2.0f;
+        ballTr->position.x = screenW / 2.0f;
+        ballTr->position.y = screenH / 2.0f;
         ballVel->velocity.x = (std::rand() % 2 == 0) ? 1.0f : -1.0f;
         ballVel->velocity.y = (static_cast<float>(std::rand()) / RAND_MAX) * 2.0f - 1.0f;
         float l = std::sqrt(ballVel->velocity.x * ballVel->velocity.x +
@@ -93,13 +96,13 @@ void BallSystem::OnUpdate(World& world, float deltaTime) {
         if (state->score2 > state->targetScore) state->state = PongStateComponent::GAMEOVER;
         return;
     }
-    if (nextX - ballSize_ * 0.5f > screenW_) {
+    if (nextX - ballSize_ * 0.5f > screenW) {
         state->score1 += 1;
         state->ballHits = 0;
         state->state = PongStateComponent::COOLDOWN;
         state->continueTime = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-        ballTr->position.x = screenW_ / 2.0f;
-        ballTr->position.y = screenH_ / 2.0f;
+        ballTr->position.x = screenW / 2.0f;
+        ballTr->position.y = screenH / 2.0f;
         ballVel->velocity.x = (std::rand() % 2 == 0) ? 1.0f : -1.0f;
         ballVel->velocity.y = (static_cast<float>(std::rand()) / RAND_MAX) * 2.0f - 1.0f;
         float l = std::sqrt(ballVel->velocity.x * ballVel->velocity.x +
