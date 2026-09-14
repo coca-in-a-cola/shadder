@@ -164,18 +164,22 @@ void SolarCameraSystem::OnUpdate(World& world, float deltaTime) {
     auto* input = game_ ? game_->GetInputDevice() : nullptr;
     if (!input) return;
 
-    // --- Копим дельты мыши за кадр (события Raw Input приходят между кадрами).
-    mouseDX_ += static_cast<float>(input->MouseOffset.x);
-    mouseDY_ += static_cast<float>(input->MouseOffset.y);
-    wheelAccum_ += input->MouseWheelDelta;
-    input->MouseOffset.x = 0.0f;
-    input->MouseOffset.y = 0.0f;
-    input->MouseWheelDelta = 0;
+    // Consume all raw events received since previous frame exactly once.
+    const auto mouseOffset = input->ConsumeMouseOffset();
+    mouseDX_ = mouseOffset.x;
+    mouseDY_ = mouseOffset.y;
+    wheelAccum_ = input->ConsumeMouseWheelDelta();
+
+    SolarSettings* settings = nullptr;
+    Query<SolarSettings> setQ(world);
+    setQ.ForEach([&](Entity, SolarSettings& s) { settings = &s; });
+    if (!settings) return;
 
     // --- Переключение режима камеры: TAB (по нажатию) -----------------------
     const bool tabNow = input->IsKeyDown(Keys::Tab);
     if (tabNow && !tabDown_) {
         mode_ = (mode_ == Mode::FPS) ? Mode::ORBIT : Mode::FPS;
+        settings->cameraFPS = mode_ == Mode::FPS;
         std::cout << "[Solar] Camera: " << (mode_ == Mode::FPS ? "FPS (WASD+mouse, Q/E down/up, Shift boost)"
                                                               : "ORBIT (RMB look, wheel zoom, MMB pan)")
                   << '\n';
@@ -183,10 +187,8 @@ void SolarCameraSystem::OnUpdate(World& world, float deltaTime) {
     tabDown_ = tabNow;
 
     // --- Настройки сцены: пресет проекции -----------------------------------
-    SolarSettings* settings = nullptr;
-    Query<SolarSettings> setQ(world);
-    setQ.ForEach([&](Entity, SolarSettings& s) { settings = &s; });
-    if (!settings) return;
+    const Mode requestedMode = settings->cameraFPS ? Mode::FPS : Mode::ORBIT;
+    if (requestedMode != mode_) mode_ = requestedMode;
 
     const auto edge = [input](Keys k, bool& wasDown) {
         const bool down = input->IsKeyDown(k);
@@ -195,12 +197,18 @@ void SolarCameraSystem::OnUpdate(World& world, float deltaTime) {
         return pressed;
     };
 
-    if (edge(Keys::D1, k1Down_)) ApplyPreset(world, *settings, SolarSettings::ProjectionPreset::FOV45);
-    if (edge(Keys::D2, k2Down_)) ApplyPreset(world, *settings, SolarSettings::ProjectionPreset::FOV90);
-    if (edge(Keys::D3, k3Down_)) ApplyPreset(world, *settings, SolarSettings::ProjectionPreset::ORTHO);
+    if (edge(Keys::D1, k1Down_)) settings->projection = SolarSettings::ProjectionPreset::FOV45;
+    if (edge(Keys::D2, k2Down_)) settings->projection = SolarSettings::ProjectionPreset::FOV90;
+    if (edge(Keys::D3, k3Down_)) settings->projection = SolarSettings::ProjectionPreset::ORTHO;
     if (edge(Keys::P, pDown_)) {
         const int next = (static_cast<int>(settings->projection) + 1) % 3;
-        ApplyPreset(world, *settings, static_cast<SolarSettings::ProjectionPreset>(next));
+        settings->projection = static_cast<SolarSettings::ProjectionPreset>(next);
+    }
+
+    if (!projectionInitialized_ || appliedProjection_ != settings->projection) {
+        ApplyPreset(world, *settings, settings->projection);
+        appliedProjection_ = settings->projection;
+        projectionInitialized_ = true;
     }
 
     // --- Активная камера ------------------------------------------------------

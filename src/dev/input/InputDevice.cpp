@@ -63,8 +63,9 @@ void InputDevice::OnMouseMove(RawMouseEventArgs args)
 	ScreenToClient(hwnd_, &p);
 	
 	MousePosition	= Vector2(p.x, p.y);
-	MouseOffset		= Vector2(args.X, args.Y);
-	MouseWheelDelta = args.WheelDelta;
+	MouseOffset.x += static_cast<float>(args.X);
+	MouseOffset.y += static_cast<float>(args.Y);
+	MouseWheelDelta += args.WheelDelta;
 
 	const MouseMoveEventArgs moveArgs = {MousePosition, MouseOffset, MouseWheelDelta};
 
@@ -84,4 +85,18 @@ void InputDevice::RemovePressedKey(Keys key)
 bool InputDevice::IsKeyDown(Keys key)
 {
 	return keys.count(key);
+}
+
+Vector2 InputDevice::ConsumeMouseOffset()
+{
+    const Vector2 offset = MouseOffset;
+    MouseOffset = Vector2(0.0f, 0.0f);
+    return offset;
+}
+
+int InputDevice::ConsumeMouseWheelDelta()
+{
+    const int delta = MouseWheelDelta;
+    MouseWheelDelta = 0;
+    return delta;
 }

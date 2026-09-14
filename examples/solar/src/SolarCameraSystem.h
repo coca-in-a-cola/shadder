@@ -51,6 +51,8 @@ private:
     float mouseDX_ = 0.0f;
     float mouseDY_ = 0.0f;
     int   wheelAccum_ = 0;
+    bool projectionInitialized_ = false;
+    SolarSettings::ProjectionPreset appliedProjection_ = SolarSettings::ProjectionPreset::FOV45;
 
     // Крайние состояния клавиш (чтобы переключение было по нажатию, не по удержанию).
     bool tabDown_ = false;

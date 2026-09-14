@@ -182,8 +182,7 @@ void KatamariCameraSystem::OnUpdate(World& world, float dt) {
 
     // Зум колесом мыши.
     if (input) {
-        wheelAccum_ += input->MouseWheelDelta;
-        input->MouseWheelDelta = 0;
+        wheelAccum_ += input->ConsumeMouseWheelDelta();
         if (wheelAccum_ != 0) {
             distance_ = std::max(4.0f, std::min(40.0f,
                 distance_ - static_cast<float>(wheelAccum_) * 0.01f * 4.0f));

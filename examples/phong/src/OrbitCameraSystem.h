@@ -19,17 +19,19 @@ public:
 
         auto* input = game_ ? game_->GetInputDevice() : nullptr;
         if (!input || !game_->GetDisplay()) return;
+        const auto mouseOffset = input->ConsumeMouseOffset();
+        const int wheelDelta = input->ConsumeMouseWheelDelta();
 
         // --- Вращение: ЛКМ + мышь -----------------------------------------
         if (input->IsKeyDown(Keys::LeftButton)) {
-            yaw_   += static_cast<float>(input->MouseOffset.x) * 0.005f;
-            pitch_ += static_cast<float>(input->MouseOffset.y) * 0.005f;
+            yaw_   += static_cast<float>(mouseOffset.x) * 0.005f;
+            pitch_ += static_cast<float>(mouseOffset.y) * 0.005f;
             // Ограничение по вертикали (не даём уйти через полюс)
             pitch_ = std::max(-1.5f, std::min(1.5f, pitch_));
         }
 
         // --- Зум колесом ----------------------------------------------------
-        distance_ += static_cast<float>(input->MouseWheelDelta) * -0.005f;
+        distance_ += static_cast<float>(wheelDelta) * -0.005f;
         distance_ = std::max(2.0f, std::min(30.0f, distance_));
 
         // --- Высота цели: W/S (вперёд/назад по вертикали) -------------------

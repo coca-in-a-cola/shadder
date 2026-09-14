@@ -28,6 +28,7 @@
 #include "SolarComponents.h"
 #include "SolarMotionSystem.h"
 #include "SolarCameraSystem.h"
+#include "SolarSettingsUI.h"
 
 #include "shared/prefabs/CameraPrefabs.h"
 
@@ -216,6 +217,7 @@ int main() {
 
     // --- Системы ---------------------------------------------------------------
     world.RegisterSystem<SolarMotionSystem>(SystemPhase::UPDATE);
+    world.RegisterSystem<SolarSettingsUI>(SystemPhase::UPDATE, &game);
     world.RegisterSystem<SolarCameraSystem>(SystemPhase::UPDATE, &game);
     world.RegisterSystem<CameraSystem>(SystemPhase::PRE_RENDER, &game);
     world.RegisterSystem<RenderSystem>(SystemPhase::RENDER, &game);
@@ -224,6 +226,7 @@ int main() {
     ResourceLoader::UploadAll(world, game.GetDevice());
 
     std::cout << "[Solar] Bodies: sun + 4 planets + 2 moons = 7\n";
+    std::cout << "[Solar] F1 - open/close settings and help\n";
     std::cout << "[Solar] TAB - switch camera (FPS <-> ORBIT)\n";
     std::cout << "[Solar] FPS:  WASD move, mouse look, Q/E down/up, Shift boost\n";
     std::cout << "[Solar] ORBIT: RMB+mouse look, wheel zoom, MMB+mouse pan\n";

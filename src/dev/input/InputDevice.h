@@ -49,6 +49,9 @@ public:
   void RemovePressedKey(Keys key);
   bool IsKeyDown(Keys key);
 
+  DirectX::SimpleMath::Vector2 ConsumeMouseOffset();
+  int ConsumeMouseWheelDelta();
+
   void OnKeyDown(KeyboardInputEventArgs args);
   void OnMouseMove(RawMouseEventArgs args);
 
