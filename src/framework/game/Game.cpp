@@ -224,6 +224,13 @@ void Game::Draw() {
         float color[] = { 0.1f, 0.1f, 0.1f, 1.0f };
         context->ClearRenderTargetView(renderTargetView.Get(), color);
 
+        // Depth belongs to this frame; ClearState does not clear buffer contents.
+        if (depthStencilView) {
+                context->ClearDepthStencilView(depthStencilView.Get(),
+                                               D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+                                               1.0f, 0);
+        }
+
         // --- ECS Render Phases ---
         ecsWorld.UpdateSystems(SystemPhase::PRE_RENDER, 0.0f);
         ecsWorld.UpdateSystems(SystemPhase::RENDER, 0.0f);

@@ -187,6 +187,9 @@ inline Entity CreateTriangleBatch(Game& game, World& world) {
     rastDesc.CullMode = D3D11_CULL_NONE;
     device->CreateRasterizerState(&rastDesc, mat.rasterizerState.GetAddressOf());
 
+    // Preserve the custom instanced shader/layout during UploadAll.
+    mat.uploaded = mat.vertexShader && mat.pixelShader && mat.inputLayout && mat.rasterizerState;
+
     return batch;
 }
 

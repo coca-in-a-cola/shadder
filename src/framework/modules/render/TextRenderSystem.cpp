@@ -58,8 +58,8 @@ PS_IN VSMain(VS_IN input)
 float4 PSMain(PS_IN input) : SV_Target
 {
     float4 texColor = FontTexture.Sample(FontSampler, input.uv);
-    // Font texture is grayscale (alpha), multiply by vertex color
-    return float4(input.col.rgb, input.col.a * texColor.r);
+    // Glyph coverage is stored in alpha; RGB is white even outside the glyph.
+    return float4(input.col.rgb, input.col.a * texColor.a);
 }
 )";
 
@@ -202,7 +202,7 @@ void TextRenderSystem::BuildTextQuads(World& world, Entity entity, TextComponent
     float charWidth = text.fontSize * text.charSpacing;
     float lineHeight = text.fontSize * text.lineSpacing;
 
-    // Count lines and find max line width
+    // Split lines, preserving empty lines for vertical alignment.
     std::vector<std::string> lines;
     std::string currentLine;
     for (char c : text.text) {
@@ -213,17 +213,11 @@ void TextRenderSystem::BuildTextQuads(World& world, Entity entity, TextComponent
             currentLine += c;
         }
     }
-    if (!currentLine.empty()) lines.push_back(currentLine);
+    lines.push_back(currentLine);
 
-    float maxLineWidth = 0.0f;
-    for (const auto& line : lines) {
-        float lineWidth = line.length() * charWidth;
-        maxLineWidth = std::max(maxLineWidth, lineWidth);
-    }
-
-    // Calculate starting position based on alignment
-    float startX = -maxLineWidth * text.hAlign;
-    float startY = (lines.size() - 1) * lineHeight * 0.5f - (lines.size() - 1) * lineHeight * text.vAlign;
+    // Screen-space text uses +Y down, matching ORTHO_SCREEN cameras.
+    float textHeight = text.fontSize + (lines.size() - 1) * lineHeight;
+    float startY = -textHeight * text.vAlign;
 
     // UV coordinates for font atlas
     const float atlasWidth = 128.0f;
@@ -232,13 +226,12 @@ void TextRenderSystem::BuildTextQuads(World& world, Entity entity, TextComponent
     const float charVHeight = 8.0f / atlasHeight;
     const uint32_t charsPerRow = 16;
 
-    XMFLOAT3 pos = transform.position;
     XMFLOAT3 scale = transform.scale;
 
     for (size_t lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
         const std::string& line = lines[lineIdx];
         float lineWidth = line.length() * charWidth;
-        float lineStartX = startX - lineWidth * text.hAlign; // Adjust for per-line alignment
+        float lineStartX = -lineWidth * text.hAlign;
 
         for (size_t charIdx = 0; charIdx < line.length(); ++charIdx) {
             char c = line[charIdx];
@@ -255,8 +248,8 @@ void TextRenderSystem::BuildTextQuads(World& world, Entity entity, TextComponent
 
             float x0 = (lineStartX + charIdx * charWidth) * scale.x;
             float x1 = x0 + charWidth * scale.x;
-            float y0 = (startY - lineIdx * lineHeight) * scale.y;
-            float y1 = y0 - text.fontSize * scale.y;
+            float y0 = (startY + lineIdx * lineHeight) * scale.y;
+            float y1 = y0 + text.fontSize * scale.y;
 
             // Two triangles (6 vertices) for the quad
             // Triangle 1: bottom-left, bottom-right, top-right
@@ -320,8 +313,11 @@ void TextRenderSystem::OnUpdate(World& world, float deltaTime) {
         UINT offset = 0;
         ctx->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
 
-        // Set world matrix (identity for text, transform is baked into vertices)
-        XMMATRIX world = XMMatrixIdentity();
+        // Scale is baked into vertices; apply rotation and translation here.
+        XMMATRIX world = XMMatrixRotationQuaternion(XMLoadFloat4(&transform.rotation))
+                         * XMMatrixTranslation(transform.position.x,
+                                               transform.position.y,
+                                               transform.position.z);
         XMMATRIX worldT = XMMatrixTranspose(world);
 
         ComPtr<ID3D11Buffer> worldCB;

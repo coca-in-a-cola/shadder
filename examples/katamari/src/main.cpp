@@ -157,6 +157,10 @@ int main() {
     world.RegisterComponent<KatamariBallComponent>();
     world.RegisterComponent<KatamariPickupComponent>();
     world.RegisterComponent<KatamariStatsComponent>();
+    world.RegisterComponent<KatamariCustomMesh>();
+
+    PerspectiveCameraPrefab(XM_PIDIV4, static_cast<float>(kScreenW) / kScreenH,
+                            0.1f, 500.0f).Instantiate(world);
 
     // --- Модели: OBJ (Kenney CC0) или процедурный fallback --------------------
     std::vector<GeometryResource> geometries;
