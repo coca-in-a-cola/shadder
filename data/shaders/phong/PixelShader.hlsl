@@ -15,41 +15,12 @@
 //   b3 CameraBuffer   — позиция активной камеры (RenderSystem.cpp, struct CameraBuffer):
 //                       float3 CameraPos; float _pad;
 //   b4 MaterialBuffer — PhongMaterialComponent (RenderSystem.cpp, struct MaterialBuffer):
-//                       float3 MaterialAmbient; float _pad1;
+//                       float3 MaterialAmbient; float EncodeSRGB;
 //                       float3 MaterialDiffuse; float _pad2;
 //                       float3 MaterialSpecular; float MaterialShininess;
+//                       float4 BaseColor; float2 UVScale; float2 UVOffset;
 
-cbuffer LightBuffer : register(b2)
-{
-    float3 LightDir;
-    float  LightIntensity;
-    float3 LightColor;
-    float  _pad1;
-};
-
-cbuffer CameraBuffer : register(b3)
-{
-    float3 CameraPos;
-    float  _pad2;
-};
-
-cbuffer MaterialBuffer : register(b4)
-{
-    float3 MaterialAmbient;
-    float  _pad3;
-    float3 MaterialDiffuse;
-    float  _pad4;
-    float3 MaterialSpecular;
-    float  MaterialShininess;
-};
-
-struct PS_IN
-{
-    float4 pos         : SV_POSITION;
-    float3 worldPos    : TEXCOORD0;
-    float3 worldNormal : TEXCOORD1;
-    float4 color       : COLOR0;
-};
+#include "Surface.hlsli"
 
 float4 PSMain(PS_IN input) : SV_Target
 {
@@ -65,18 +36,18 @@ float4 PSMain(PS_IN input) : SV_Target
     // R — отражение падающего света относительно нормали (модель Фонга).
     float3 R = reflect(-L, N);
 
-    // Ambient: постоянная подсветка.
-    float3 ambient = MaterialAmbient * LightColor * LightIntensity;
-
-    // Diffuse: Ламберт.
     float NdotL = max(dot(N, L), 0.0f);
-    float3 diffuse = MaterialDiffuse * LightColor * NdotL * LightIntensity;
 
     // Specular: Фонг с отражённым вектором. Блик только на освещённой стороне.
     float NdotR = max(dot(R, V), 0.0f);
     float3 specular = MaterialSpecular * LightColor * pow(NdotR, MaterialShininess) * LightIntensity;
-
-    float3 finalColor = (ambient + diffuse + specular) * input.color.rgb;
-
-    return float4(finalColor, input.color.a);
+    float4 albedo = SampleAlbedo(input);
+    if (EncodeSRGB > 0.5f) {
+        // Albedo modulates diffuse reflection, not the specular highlight.
+        specular *= NdotL > 0.0f ? 1.0f : 0.0f;
+        return SurfaceOutput(DiffuseLighting(NdotL) * albedo.rgb + specular, albedo.a);
+    }
+    // Preserve the original vertex-tinted highlights for legacy solid materials.
+    return SurfaceOutput(DiffuseLighting(NdotL) * albedo.rgb
+                         + specular * input.color.rgb, albedo.a);
 }

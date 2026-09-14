@@ -38,6 +38,7 @@ namespace shadder {
     using ::ObjLoader;
     using ::ObjMeshData;
     using ::PhongMaterialComponent;
+    using ::PhongMaterialDesc;
     using ::Query;
     using ::RenderSystem;
     using ::ResourceLoader;
@@ -45,7 +46,10 @@ namespace shadder {
     using ::Signal;
     using ::SparseSetStorage;
     using ::SystemPhase;
+    using ::Texture2D;
+    using ::TextureLoader;
     using ::Transform3D;
     using ::VelocityComponent;
+    using ::Vertex3D;
     using ::World;
 }

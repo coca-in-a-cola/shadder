@@ -5,11 +5,11 @@
 //
 // Поддержка: v (позиции), vn (нормали), f (треугольные/многоугольные грани —
 // триангулируются фан-методом), индексы вида v, v//vn, v/vt/vn, v/vt.
-// НЕ поддерживается (и не нужно для примеров): vt-данные, материалы (mtl),
+// Поддерживаются vt-данные. Не поддерживаются материалы (mtl),
 // группы/сглаживание (g/s/o читаются и игнорируются).
 //
 // Результат — «сырые» данные геометрии в пресете POS_NORMAL_COLOR фреймворка
-// (позиция float4 + нормаль float3 + цвет float4). Цвет общий на модель:
+// (позиция float4 + нормаль float3 + цвет float4 + UV float2). Цвет общий на модель:
 // OBJ не несёт цветов, окраску задаёт пользователь ObjLoader::Load(..., color).
 // Нормали: если у вершины нет vn — усредняем нормали граней (smooth shading).
 //
@@ -21,15 +21,12 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "Vertex3D.h"
 
 struct ObjMeshData {
     // Пресет POS_NORMAL_COLOR (совпадает с VertexPosNormalColor в ResourceLoader):
-    // POSITION0 (float4) + NORMAL0 (float3) + COLOR0 (float4).
-    struct Vertex {
-        DirectX::XMFLOAT4 pos;
-        DirectX::XMFLOAT3 normal;
-        DirectX::XMFLOAT4 color;
-    };
+    // POSITION0 + NORMAL0 + COLOR0 + TEXCOORD0 (Vertex3D).
+    using Vertex = Vertex3D;
 
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;

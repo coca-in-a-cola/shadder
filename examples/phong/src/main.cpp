@@ -14,11 +14,11 @@
 // и зеркальными бликами на объектах. Блик зависит от угла камеры
 // (позиция зрителя приходит в пиксельный шейдер) — при вращении камеры
 // блики «ползут» по объектам. Материалы слева направо:
-//   1) матовый красный куб        (specular слабый, shininess 8)
-//   2) глянцевый зелёный куб      (specular белый, shininess 64)
+//   1) текстурированный diffuse-куб (1.jpg, без блика)
+//   2) глянцевый текстурированный куб (2.jpg, shininess 64)
 //   3) блестящая белая сфера      (shininess 96 — малый яркий блик)
 //   4) синяя сфера с блик-полосой (shininess 32)
-//   5) латунный маленький куб     (тёплый specular, shininess 24)
+//   5) текстурированный маленький куб (3.jpg, тёплый specular)
 // Пол — серый матовый с мягким бликом, чтобы читалось направление света.
 
 #include "shadder.hpp"
@@ -53,7 +53,8 @@ static Entity MakeObject(World& world,
                          MeshComponent::Primitive primitive,
                          XMFLOAT4 color,
                          XMFLOAT3 ambient, XMFLOAT3 diffuse,
-                         XMFLOAT3 specular, float shininess) {
+                         XMFLOAT3 specular, float shininess,
+                         const wchar_t* diffuseTexture = L"") {
     Entity e = world.CreateEntity();
 
     auto& mesh = world.AddComponent<MeshComponent>(e);
@@ -65,6 +66,7 @@ static Entity MakeObject(World& world,
     mat.diffuse = diffuse;
     mat.specular = specular;
     mat.shininess = shininess;
+    mat.diffuseTexturePath = diffuseTexture;
 
     auto& tr = world.AddComponent<Transform3D>(e);
     tr.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -114,22 +116,23 @@ int main() {
 
     // --- 5 объектов с разными материалами ------------------------------------
     {
-        // 1) Матовый красный куб — слабый широкий блик.
+        // 1) Матовый текстурированный куб — diffuse shader.
         Entity e = MakeObject(world, MeshComponent::Primitive::CUBE,
-                              { 0.9f, 0.15f, 0.15f, 1.0f },
-                              { 0.08f, 0.02f, 0.02f }, { 0.9f, 0.15f, 0.15f },
-                              { 0.3f, 0.3f, 0.3f }, 8.0f);
+                              { 1.0f, 1.0f, 1.0f, 1.0f },
+                              { 0.08f, 0.08f, 0.08f }, { 0.9f, 0.9f, 0.9f },
+                              { 0.3f, 0.3f, 0.3f }, 8.0f, L"data/textures/1.jpg");
+        world.GetComponent<PhongMaterialComponent>(e)->shading = PhongMaterialDesc::Shading::Diffuse;
         auto* mesh = world.GetComponent<MeshComponent>(e);
         auto* tr = world.GetComponent<Transform3D>(e);
         mesh->cubeSize = 1.2f;
         tr->position = { -4.0f, 0.6f, 0.0f };
     }
     {
-        // 2) Глянцевый зелёный куб — выраженный блик.
+        // 2) Глянцевый текстурированный куб — выраженный блик.
         Entity e = MakeObject(world, MeshComponent::Primitive::CUBE,
-                              { 0.1f, 0.85f, 0.25f, 1.0f },
-                              { 0.02f, 0.08f, 0.03f }, { 0.1f, 0.85f, 0.25f },
-                              { 0.9f, 0.9f, 0.9f }, 64.0f);
+                              { 1.0f, 1.0f, 1.0f, 1.0f },
+                              { 0.08f, 0.08f, 0.08f }, { 0.85f, 0.85f, 0.85f },
+                              { 0.9f, 0.9f, 0.9f }, 64.0f, L"data/textures/2.jpg");
         auto* mesh = world.GetComponent<MeshComponent>(e);
         auto* tr = world.GetComponent<Transform3D>(e);
         mesh->cubeSize = 1.0f;
@@ -162,11 +165,11 @@ int main() {
         tr->position = { 2.4f, 0.5f, 0.8f };
     }
     {
-        // 5) Латунный маленький куб — тёплый specular.
+        // 5) Текстурированный маленький куб — тёплый specular.
         Entity e = MakeObject(world, MeshComponent::Primitive::CUBE,
-                              { 0.85f, 0.65f, 0.2f, 1.0f },
-                              { 0.1f, 0.07f, 0.02f }, { 0.85f, 0.65f, 0.2f },
-                              { 1.0f, 0.85f, 0.5f }, 24.0f);
+                              { 1.0f, 1.0f, 1.0f, 1.0f },
+                              { 0.1f, 0.1f, 0.1f }, { 0.85f, 0.85f, 0.85f },
+                              { 1.0f, 0.85f, 0.5f }, 24.0f, L"data/textures/3.jpg");
         auto* mesh = world.GetComponent<MeshComponent>(e);
         auto* tr = world.GetComponent<Transform3D>(e);
         mesh->cubeSize = 0.8f;

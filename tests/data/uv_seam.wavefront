@@ -1,0 +1,12 @@
+# Wavefront OBJ fixture; .wavefront avoids the repository's *.obj build ignore.
+# Two non-coplanar triangles share positions but use different UVs.
+v 0 0 0
+v 1 0 0
+v 0 1 0
+v 0 0 1
+vt 0 0
+vt 1 0
+vt 0 1
+vt 1 1
+f 1/1 2/2 3/3
+f -4/-1 -1/-2 -3/-3

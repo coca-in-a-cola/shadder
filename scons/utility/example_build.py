@@ -56,6 +56,7 @@ IMGUI_FILES = [
 D3D_LIBS = [
     'user32', 'gdi32', 'ole32', 'kernel32',
     'd3d11', 'dxgi', 'd3dcompiler', 'dxguid',
+    'DirectXTK', 'windowscodecs', 'uuid',
 ]
 
 

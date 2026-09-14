@@ -1,0 +1,13 @@
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.join(Dir('#').abspath, '..'))
+sys.path.insert(0, ROOT)
+from scons.utility.example_build import make_example_env
+
+env = make_example_env(ROOT, imgui=False)
+sources = ['test_textures.cpp'] + [os.path.join(ROOT, 'src', 'framework', 'modules', 'render', name)
+                                 for name in ['ResourceLoader.cpp', 'TextureLoader.cpp', 'ObjLoader.cpp']]
+objects = [env.Object(target=os.path.join('bin', os.path.basename(path) + '.obj'), source=path)
+           for path in sources]
+Default(env.Program('bin/test_textures', objects))

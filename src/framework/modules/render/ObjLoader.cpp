@@ -66,7 +66,8 @@ XMFLOAT3 FaceNormal(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c) {
 
 } // namespace
 
-bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out) {
+bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& output) {
+    ObjMeshData out; // Publish only a complete mesh, including valid UV indices.
     // std::ifstream не принимает wstring на mingw — конвертируем в узкую строку
     // (пути моделей ASCII, кириллица в именах моделей не ожидается).
     std::string narrow(path.begin(), path.end());
@@ -78,14 +79,14 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
 
     std::vector<XMFLOAT3> positions;
     std::vector<XMFLOAT3> normals;
+    std::vector<DirectX::XMFLOAT2> texcoords;
     std::vector<ObjVertexKey> uniqueKeys;
     std::unordered_map<ObjVertexKey, uint32_t, ObjVertexKeyHash> uniqueMap;
 
     // Нормали граней для усреднения (вершина может не иметь vn в файле).
     std::vector<XMVECTOR> faceNormals;
-    // Для каждой выходной вершины — список (нормаль грани, вес) для усреднения.
-    // Индекс согласован с uniqueKeys.
-    std::vector<std::vector<size_t>> vertexFaces;
+    // Smooth generated normals across UV seams using the original position index.
+    std::vector<std::vector<size_t>> positionFaces;
 
     std::string line;
     while (std::getline(file, line)) {
@@ -101,6 +102,10 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
             float x = 0, y = 0, z = 0;
             ss >> x >> y >> z;
             positions.push_back({ x, y, z });
+        } else if (tag == "vt") {
+            float u = 0, v = 0;
+            ss >> u >> v;
+            texcoords.push_back({ u, 1.0f - v }); // OBJ bottom-left -> D3D top-left.
         } else if (tag == "vn") {
             float x = 0, y = 0, z = 0;
             ss >> x >> y >> z;
@@ -138,9 +143,15 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
                 };
                 const int v = resolve(vIdx, positions.size());
                 const int n = resolve(nIdx, normals.size());
-                if (v < 0) continue; // битая вершина — пропускаем
+                const int t = resolve(tIdx, texcoords.size());
+                if (v < 0 || static_cast<size_t>(v) >= positions.size() ||
+                    (nIdx != 0 && (n < 0 || static_cast<size_t>(n) >= normals.size())) ||
+                    (tIdx != 0 && (t < 0 || static_cast<size_t>(t) >= texcoords.size()))) {
+                    std::cout << "[ObjLoader] Invalid face index\n";
+                    return false;
+                }
 
-                ObjVertexKey key{ v, 0, n };
+                ObjVertexKey key{ v, t, n };
                 auto it = uniqueMap.find(key);
                 uint32_t outIdx;
                 if (it != uniqueMap.end()) {
@@ -165,8 +176,8 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
             faceNormals.push_back(DirectX::XMLoadFloat3(&fn));
 
             for (uint32_t fv : faceVerts) {
-                vertexFaces.resize(uniqueKeys.size());
-                vertexFaces[fv].push_back(faceId);
+                positionFaces.resize(positions.size());
+                positionFaces[uniqueKeys[fv].v].push_back(faceId);
             }
 
             // Триангуляция фаном: (0, i, i+1).
@@ -176,7 +187,7 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
                 out.indices.push_back(faceVerts[i + 1]);
             }
         }
-        // Остальные теги (vt, mtllib, usemtl, g, s, o) игнорируем.
+        // Остальные теги (mtllib, usemtl, g, s, o) игнорируем.
     }
 
     if (out.indices.empty()) {
@@ -195,11 +206,12 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
         } else {
             // Усредняем нормали граней, к которым принадлежит вершина.
             XMVECTOR acc = DirectX::XMVectorZero();
-            for (size_t f : vertexFaces[i]) acc = DirectX::XMVectorAdd(acc, faceNormals[f]);
+            for (size_t f : positionFaces[key.v]) acc = DirectX::XMVectorAdd(acc, faceNormals[f]);
             DirectX::XMStoreFloat3(&n, DirectX::XMVector3Normalize(acc));
         }
         const XMFLOAT3& p = positions[key.v];
-        out.vertices.push_back({ { p.x, p.y, p.z, 1.0f }, n, color });
+        const DirectX::XMFLOAT2 uv = key.t >= 0 ? texcoords[key.t] : DirectX::XMFLOAT2{ 0, 0 };
+        out.vertices.push_back({ { p.x, p.y, p.z, 1.0f }, n, color, uv });
     }
 
     // --- Bounding sphere: центр bbox, радиус = max расстояние до вершины ------
@@ -221,5 +233,6 @@ bool ObjLoader::Load(const std::wstring& path, XMFLOAT4 color, ObjMeshData& out)
               << out.vertices.size() << " verts, "
               << out.indices.size() / 3 << " tris, radius "
               << out.radius << '\n';
+    output = std::move(out);
     return true;
 }

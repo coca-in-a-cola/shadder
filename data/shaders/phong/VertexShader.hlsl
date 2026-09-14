@@ -1,6 +1,6 @@
 // VertexShader.hlsl — Phong vertex shader.
 //
-// Передаёт в PS МИРОВЫЕ позицию и нормаль (для модели Фонга) + цвет вершины.
+// Передаёт в PS МИРОВЫЕ позицию и нормаль, цвет вершины и UV.
 //
 // Constant buffers (совпадают с C++ структурами):
 //   b0 WorldBuffer  — XMMATRIX (транспонированная world-матрица объекта, RenderSystem.cpp)
@@ -9,8 +9,7 @@
 //   b3 CameraBuffer — float3 CameraPos; float pad; (использовался в VS раньше;
 //                     теперь V считается в PS — b3 объявлен и в PixelShader.hlsl)
 //
-// Вершинный формат: POSITION0 (float4) + NORMAL0 (float3) + COLOR0 (float4)
-// — пресет POS_NORMAL_COLOR в ResourceLoader.cpp.
+// Vertex3D: POSITION0 (float4) + NORMAL0 (float3) + COLOR0 (float4) + TEXCOORD0 (float2).
 
 cbuffer WorldBuffer : register(b0)
 {
@@ -27,6 +26,7 @@ struct VS_IN
     float4 pos    : POSITION0;
     float3 normal : NORMAL0;
     float4 color  : COLOR0;
+    float2 uv     : TEXCOORD0;
 };
 
 struct PS_IN
@@ -35,6 +35,7 @@ struct PS_IN
     float3 worldPos    : TEXCOORD0; // мировая позиция — для V = normalize(CameraPos - worldPos) в PS
     float3 worldNormal : TEXCOORD1; // мировая нормаль — для N·L и R·V в PS
     float4 color       : COLOR0;
+    float2 uv          : TEXCOORD2;
 };
 
 PS_IN VSMain(VS_IN input)
@@ -55,6 +56,7 @@ PS_IN VSMain(VS_IN input)
 
     // Цвет вершины насквозь (модулирует материал в PS)
     output.color = input.color;
+    output.uv = input.uv;
 
     return output;
 }

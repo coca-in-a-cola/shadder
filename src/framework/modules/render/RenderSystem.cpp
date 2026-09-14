@@ -4,6 +4,7 @@
 #include "framework/modules/render/MeshComponent.h"
 #include "framework/modules/render/MaterialComponent.h"
 #include "framework/modules/render/PhongMaterialComponent.h"
+#include "framework/modules/render/ResourceLoader.h"
 #include "framework/modules/render/DirectionalLightComponent.h"
 #include "framework/modules/camera/CameraComponent.h"
 #include "framework/game/Game.h"
@@ -14,6 +15,8 @@ void RenderSystem::OnUpdate(World& world, float) {
     auto* ctx = game_->GetContext();
     auto* device = game_->GetDevice();
     if (!ctx || !device) return;
+    // Lazy upload also handles newly created objects and SetMaterial() at runtime.
+    ResourceLoader::UploadAll(world, device);
 
     // Slot b1 (ViewProjection) заполняет CameraSystem в PRE_RENDER.
 
@@ -102,6 +105,7 @@ void RenderSystem::OnUpdate(World& world, float) {
     // --- Render regular MaterialComponent (POS_COLOR) ---
     Query<Transform3D, MeshComponent, MaterialComponent> q(world);
     q.ForEach([&](Entity, Transform3D& tr, MeshComponent& mesh, MaterialComponent& mat) {
+        if (!mat.uploaded || !mesh.vertexBuffer || !mesh.indexBuffer) return;
         using namespace DirectX;
         XMMATRIX world = XMMatrixScaling(tr.scale.x, tr.scale.y, tr.scale.z)
                         * XMMatrixRotationQuaternion(XMLoadFloat4(&tr.rotation))
@@ -132,6 +136,7 @@ void RenderSystem::OnUpdate(World& world, float) {
     // --- Render PhongMaterialComponent (POS_NORMAL_COLOR) ---
     Query<Transform3D, MeshComponent, PhongMaterialComponent> phongQ(world);
     phongQ.ForEach([&](Entity, Transform3D& tr, MeshComponent& mesh, PhongMaterialComponent& mat) {
+        if (!mat.uploaded || !mesh.vertexBuffer || !mesh.indexBuffer || !mat.diffuseTexture) return;
         using namespace DirectX;
         XMMATRIX world = XMMatrixScaling(tr.scale.x, tr.scale.y, tr.scale.z)
                         * XMMatrixRotationQuaternion(XMLoadFloat4(&tr.rotation))
@@ -148,19 +153,27 @@ void RenderSystem::OnUpdate(World& world, float) {
         // Per-object material CB (slot b4)
         struct MaterialBuffer {
             DirectX::XMFLOAT3 ambient;
-            float _pad1;
+            float encodeSRGB;
             DirectX::XMFLOAT3 diffuse;
             float _pad2;
             DirectX::XMFLOAT3 specular;
             float shininess;
+            DirectX::XMFLOAT4 baseColor;
+            DirectX::XMFLOAT2 uvScale;
+            DirectX::XMFLOAT2 uvOffset;
         };
+        static_assert(sizeof(MaterialBuffer) == 80);
         Microsoft::WRL::ComPtr<ID3D11Buffer> materialCB;
-        MaterialBuffer mb = { mat.ambient, 0.0f, mat.diffuse, 0.0f, mat.specular, mat.shininess };
+        MaterialBuffer mb = { mat.ambient,
+            (mat.linearLighting || !mat.diffuseTexturePath.empty()) ? 1.0f : 0.0f,
+            mat.diffuse, 0.0f, mat.specular, mat.shininess, mat.baseColor, mat.uvScale, mat.uvOffset };
         D3D11_BUFFER_DESC mbd = { sizeof(MaterialBuffer), D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0 };
         D3D11_SUBRESOURCE_DATA msd = { &mb };
         device->CreateBuffer(&mbd, &msd, materialCB.GetAddressOf());
         ctx->VSSetConstantBuffers(4, 1, materialCB.GetAddressOf());
         ctx->PSSetConstantBuffers(4, 1, materialCB.GetAddressOf());
+        ctx->PSSetShaderResources(0, 1, mat.diffuseTexture->view.GetAddressOf());
+        ctx->PSSetSamplers(0, 1, mat.sampler.GetAddressOf());
 
         // Set pipeline
         ctx->IASetInputLayout(mat.inputLayout.Get());
@@ -175,4 +188,9 @@ void RenderSystem::OnUpdate(World& world, float) {
 
         ctx->DrawIndexed(mesh.indexCount, 0, 0);
     });
+    // Do not retain the last material through the context across frames/passes.
+    ID3D11ShaderResourceView* noTexture = nullptr;
+    ID3D11SamplerState* noSampler = nullptr;
+    ctx->PSSetShaderResources(0, 1, &noTexture);
+    ctx->PSSetSamplers(0, 1, &noSampler);
 }
