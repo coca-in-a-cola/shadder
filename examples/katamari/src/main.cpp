@@ -33,6 +33,7 @@
 #include "KatamariComponents.h"
 #include "KatamariSystems.h"
 #include "KatamariUpload.h"
+#include "KatamariSettingsUI.h"
 
 #include "shared/prefabs/CameraPrefabs.h"
 
@@ -40,8 +41,8 @@ using namespace shadder;
 using namespace DirectX;
 
 static const float  kFieldHalf = 40.0f;   // половина стороны игрового поля
-static const float  kBallStartRadius = 1.0f;
-static const int    kPickupCount = 120;   // объектов на поле
+static const float  kBallStartRadius = 0.3f;
+static const int    kPickupCount = 240;   // объектов на поле
 static const uint32_t kSeed = 20260910;   // фиксированный seed (воспроизводимость, спека п.3)
 
 static Game* g_Game = nullptr;
@@ -234,8 +235,8 @@ int main() {
 
         auto& ball = world.AddComponent<KatamariBallComponent>(ballEntity);
         ball.radius = kBallStartRadius;
-        ball.moveSpeed = 7.0f;
-        ball.growPerPickup = 0.9f;
+        ball.moveSpeed = 5.0f;
+        ball.growPerPickup = 0.1f;
     }
 
     // --- Пикапы: модели по полю, seed фиксирован (спека п.3) --------------------
@@ -271,8 +272,8 @@ int main() {
 
         // Bounding sphere ИЗ ГЕОМЕТРИИ (спека п.5): радиус модели * масштаб.
         // Модели Kenney стоят на Y=0 (низ в нуле) — приподнимаем на радиус.
-        const float geoRadius = geo.mesh.radius * scale;
-        tr.position.y = geoRadius * 0.6f; // низ у пола (модели ~вытянуты вверх)
+        const float geoRadius = geo.mesh.radius * scale * 0.1f;
+        // tr.position.y = geoRadius * 0.6f; // низ у пола (модели ~вытянуты вверх)
 
         auto& pickup = world.AddComponent<KatamariPickupComponent>(e);
         pickup.radius = geoRadius;
@@ -299,6 +300,7 @@ int main() {
     }
 
     // --- Системы -----------------------------------------------------------------
+    world.RegisterSystem<KatamariSettingsUI>(SystemPhase::UPDATE, &game);
     world.RegisterSystem<KatamariBallSystem>(SystemPhase::UPDATE, &game);
     world.RegisterSystem<KatamariPickupSystem>(SystemPhase::UPDATE);
     world.RegisterSystem<KatamariCameraSystem>(SystemPhase::UPDATE, &game);
@@ -314,7 +316,7 @@ int main() {
 
     std::cout << "[Katamari] models: " << (modelsOk ? "Kenney Furniture Kit OBJ (CC0)" : "FALLBACK procedural")
               << " | pickups: " << totalPickups << " | seed: " << kSeed << '\n';
-    std::cout << "[Katamari] WASD - roll the ball, mouse wheel - zoom, ESC - exit\n";
+    std::cout << "[Katamari] W/S - move, A/D - tank steering, mouse wheel - zoom, F1 - help, ESC - exit\n";
     std::cout << "[Katamari] Pick up objects smaller than you. Grow!\n";
 
     game.Run();

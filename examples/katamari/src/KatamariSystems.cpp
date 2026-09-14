@@ -17,31 +17,29 @@ using namespace DirectX;
 // KatamariBallSystem
 // -----------------------------------------------------------------------------
 // Движение шара в горизонтальной плоскости (2.5D: Y = radius, спека п.4).
-// Шар «катится»: вращение вокруг оси, перпендикулярной направлению движения
-// (как реальный шар). Направление WASD — относительно камеры (как в Katamari).
+// W/S двигают вперёд/назад, A/D поворачивают корпус как у танка.
 // -----------------------------------------------------------------------------
 
 void KatamariBallSystem::OnUpdate(World& world, float dt) {
     auto* input = game_ ? game_->GetInputDevice() : nullptr;
     if (!input) return;
 
-    // Ввод: WASD в мировых осях, повернутых yaw камеры. W = «от камеры».
-    float ix = 0.0f, iz = 0.0f;
-    if (input->IsKeyDown(Keys::W)) iz += 1.0f;
-    if (input->IsKeyDown(Keys::S)) iz -= 1.0f;
-    if (input->IsKeyDown(Keys::D)) ix += 1.0f;
-    if (input->IsKeyDown(Keys::A)) ix -= 1.0f;
-
-    // Камера смотрит с фиксированным yaw_ = 0 (стоит на -Z): W = +Z, D = +X.
-    XMFLOAT2 dir = { ix, iz };
-    const float lenSq = dir.x * dir.x + dir.y * dir.y;
-    if (lenSq > 1e-6f) {
-        const float inv = 1.0f / std::sqrt(lenSq);
-        dir.x *= inv; dir.y *= inv;
-    }
-
     Query<KatamariBallComponent, Transform3D> q(world);
     q.ForEach([&](Entity, KatamariBallComponent& ball, Transform3D& tr) {
+        const float turnSpeed = 2.5f;
+        if (input->IsKeyDown(Keys::A)) ball.headingYaw -= turnSpeed * dt;
+        if (input->IsKeyDown(Keys::D)) ball.headingYaw += turnSpeed * dt;
+
+        float direction = 0.0f;
+        if (input->IsKeyDown(Keys::W)) direction += 1.0f;
+        if (input->IsKeyDown(Keys::S)) direction -= 1.0f;
+
+        const XMFLOAT2 dir = {
+            std::sin(ball.headingYaw) * direction,
+            std::cos(ball.headingYaw) * direction,
+        };
+        const float lenSq = dir.x * dir.x + dir.y * dir.y;
+
         // Скорость слегка растёт с размером (большой шар катится бодрее).
         const float speed = ball.moveSpeed * (0.8f + ball.radius * 0.15f);
 
@@ -172,8 +170,7 @@ void KatamariPickupSystem::OnUpdate(World& world, float) {
 // -----------------------------------------------------------------------------
 // KatamariCameraSystem
 // -----------------------------------------------------------------------------
-// Камера за спиной (спека п.6, «как Katamari»): НЕ зависит от вращения шара
-// (orbit-независимая). Фиксированный yaw, высота и дистанция (зум колесом).
+    // Камера следует за направлением корпуса и смотрит в точку впереди шара.
 // Пишет eye/target/up в CameraComponent; матрицы строит CameraSystem (PRE_RENDER).
 // -----------------------------------------------------------------------------
 
@@ -208,9 +205,27 @@ void KatamariCameraSystem::OnUpdate(World& world, float dt) {
     const float dist = distance_ + ballRadius * 2.0f;
     const float height = height_ + ballRadius * 1.5f;
 
-    // Камера стоит на -Z от шара (yaw фиксирован), смотрит на шар.
-    XMFLOAT3 eye = { ballPos.x, ballPos.y + height, ballPos.z - dist };
-    XMFLOAT3 target = { ballPos.x, ballPos.y + ballRadius * 0.5f, ballPos.z };
+    float headingYaw = 0.0f;
+    Query<KatamariBallComponent> headingQ(world);
+    headingQ.ForEach([&](Entity, KatamariBallComponent& ball) {
+        headingYaw = ball.headingYaw;
+    });
+    const XMFLOAT3 forward = {
+        std::sin(headingYaw),
+        0.0f,
+        std::cos(headingYaw),
+    };
+    const float lookAhead = std::max(2.0f, ballRadius * 4.0f);
+    XMFLOAT3 eye = {
+        ballPos.x - forward.x * dist,
+        ballPos.y + height,
+        ballPos.z - forward.z * dist,
+    };
+    XMFLOAT3 target = {
+        ballPos.x + forward.x * lookAhead,
+        ballPos.y + ballRadius * 0.5f,
+        ballPos.z + forward.z * lookAhead,
+    };
     XMFLOAT3 up = { 0.0f, 1.0f, 0.0f };
 
     Query<CameraComponent> cq(world);

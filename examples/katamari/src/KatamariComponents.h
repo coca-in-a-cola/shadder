@@ -24,10 +24,10 @@
 
 // Катящийся шар (игрок).
 struct KatamariBallComponent final : public shadder::ComponentBase {
-    float radius = 0.5f;        // текущий радиус шара (мировые единицы)
+    float radius = 0.8f;        // текущий радиус шара (мировые единицы)
     float moveSpeed = 6.0f;     // линейная скорость (растёт с размером)
-    float growPerPickup = 0.9f; // прирост радиуса на объект (масштабируется от размера)
-    DirectX::XMFLOAT2 moveInput = { 0.0f, 0.0f }; // (-1..1) x=вправо, y=вперёд
+    float growPerPickup = 0.1f; // прирост радиуса на объект (масштабируется от размера)
+    float headingYaw = 0.0f;    // направление движения в радианах, 0 = +Z
 };
 
 // Нестандартная геометрия пикапа: OBJ/fallback-данные в пресете POS_NORMAL_COLOR.
@@ -41,7 +41,7 @@ struct KatamariCustomMesh final : public shadder::ComponentBase {
 
 // Объект, который шар может подобрать.
 struct KatamariPickupComponent final : public shadder::ComponentBase {
-    float radius = 0.3f;    // радиус bounding sphere из геометрии * scale
+    float radius = .5f;    // радиус bounding sphere из геометрии * scale
     bool pickedUp = false;  // подобран?
     float stuckAngle = 0.0f;// угол на поверхности шара (куда прилип)
     float stuckHeight = 0.0f; // высота на поверхности шара
