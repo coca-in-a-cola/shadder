@@ -22,6 +22,7 @@ struct PhongMaterialDesc {
     // Textured materials always use linear lighting. Opt in for solid colors too.
     // False preserves the output of existing, untextured examples.
     bool linearLighting = false;
+    bool receivesShadow = true;
     std::wstring shaderPath;
 };
 

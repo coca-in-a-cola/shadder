@@ -3,6 +3,8 @@
 
 Texture2D DiffuseMap : register(t0);
 SamplerState DiffuseSampler : register(s0);
+Texture2D ShadowMap : register(t1);
+SamplerComparisonState ShadowSampler : register(s1);
 
 cbuffer LightBuffer : register(b2)
 {
@@ -30,6 +32,16 @@ cbuffer MaterialBuffer : register(b4)
     float4 BaseColor;
     float2 UVScale;
     float2 UVOffset;
+    float ReceiveShadows;
+    float3 _materialPad2;
+};
+
+cbuffer ShadowMatrixBuffer : register(b5)
+{
+    float4x4 LightViewProj;
+    float2 ShadowTexelSize;
+    float ShadowBias;
+    float ShadowEnabled;
 };
 
 struct PS_IN
@@ -58,6 +70,24 @@ float4 SampleAlbedo(PS_IN input)
 float3 DiffuseLighting(float ndotl)
 {
     return (MaterialAmbient + MaterialDiffuse * ndotl) * LightColor * LightIntensity;
+}
+
+float ShadowFactor(float3 worldPos)
+{
+    if (ShadowEnabled < 0.5f || ReceiveShadows < 0.5f) return 1.0f;
+    float4 lightPos = mul(float4(worldPos, 1.0f), LightViewProj);
+    if (lightPos.w <= 0.0f) return 1.0f;
+    float3 projection = lightPos.xyz / lightPos.w;
+    float2 uv = float2(projection.x * 0.5f + 0.5f, -projection.y * 0.5f + 0.5f);
+    if (any(uv < 0.0f) || any(uv > 1.0f) || projection.z < 0.0f || projection.z > 1.0f) return 1.0f;
+    float visibility = 0.0f;
+    [unroll] for (int y = -1; y <= 1; ++y) {
+        [unroll] for (int x = -1; x <= 1; ++x) {
+            visibility += ShadowMap.SampleCmpLevelZero(ShadowSampler,
+                uv + float2(x, y) * ShadowTexelSize, projection.z - ShadowBias);
+        }
+    }
+    return visibility / 9.0f;
 }
 
 float4 SurfaceOutput(float3 lighting, float alpha)

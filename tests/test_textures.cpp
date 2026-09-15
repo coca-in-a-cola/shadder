@@ -188,10 +188,20 @@ int main() {
     const std::array<float, 8> light = { 0,0,1,1, 1,1,1,0 };
     auto lightCB = Constant(device.Get(), light);
     context->PSSetConstantBuffers(2, 1, lightCB.GetAddressOf());
-    const std::array<float, 20> material = { 1,1,1,1, 0,0,0,0, 0,0,0,32, .5f,.5f,.5f,1, 1,1,0,0 };
+    const std::array<float, 24> material = { 1,1,1,1, 0,0,0,0, 0,0,0,32,
+                                             .5f,.5f,.5f,1, 1,1,0,0, 1,0,0,0 };
     auto materialCB = Constant(device.Get(), material);
     context->PSSetConstantBuffers(4, 1, materialCB.GetAddressOf());
     context->PSSetSamplers(0, 1, diffuse->sampler.GetAddressOf());
+    D3D11_SAMPLER_DESC shadowSamplerDesc = {};
+    shadowSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+    shadowSamplerDesc.AddressU = shadowSamplerDesc.AddressV = shadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+    shadowSamplerDesc.BorderColor[0] = shadowSamplerDesc.BorderColor[1] = shadowSamplerDesc.BorderColor[2] = shadowSamplerDesc.BorderColor[3] = 1.0f;
+    shadowSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    ComPtr<ID3D11SamplerState> shadowSampler;
+    HR(device->CreateSamplerState(&shadowSamplerDesc, shadowSampler.GetAddressOf()));
+    context->PSSetSamplers(1, 1, shadowSampler.GetAddressOf());
     auto draw = [&](const std::shared_ptr<Texture2D>& texture) {
         context->PSSetShaderResources(0, 1, texture->view.GetAddressOf());
         context->Draw(3, 0);

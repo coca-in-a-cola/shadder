@@ -181,6 +181,10 @@ int main() {
         light.color = { 1.0f, 0.97f, 0.92f };
         light.intensity = 1.0f;
         light.direction = { -0.4f, -0.8f, 0.45f }; // сверху-слева-спереди
+        light.shadowsEnabled = true;
+        light.shadowOrthoSize = kFieldHalf * 2.0f;
+        light.shadowDistance = 80.0f;
+        light.shadowFarZ = 180.0f;
         light.active = true;
     }
 

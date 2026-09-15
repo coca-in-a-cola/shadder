@@ -99,6 +99,10 @@ int main() {
         light.color = { 1.0f, 0.96f, 0.9f };
         light.intensity = 1.0f;
         light.direction = { 0.4f, -0.8f, 0.45f }; // нормализуется в RenderSystem
+        light.shadowsEnabled = true;
+        light.shadowOrthoSize = 24.0f;
+        light.shadowDistance = 25.0f;
+        light.shadowFarZ = 60.0f;
         light.active = true;
     }
 

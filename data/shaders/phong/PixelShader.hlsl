@@ -37,6 +37,7 @@ float4 PSMain(PS_IN input) : SV_Target
     float3 R = reflect(-L, N);
 
     float NdotL = max(dot(N, L), 0.0f);
+    float shadow = ShadowFactor(input.worldPos);
 
     // Specular: Фонг с отражённым вектором. Блик только на освещённой стороне.
     float NdotR = max(dot(R, V), 0.0f);
@@ -45,9 +46,10 @@ float4 PSMain(PS_IN input) : SV_Target
     if (EncodeSRGB > 0.5f) {
         // Albedo modulates diffuse reflection, not the specular highlight.
         specular *= NdotL > 0.0f ? 1.0f : 0.0f;
-        return SurfaceOutput(DiffuseLighting(NdotL) * albedo.rgb + specular, albedo.a);
+        float3 lighting = (MaterialAmbient + MaterialDiffuse * NdotL * shadow) * LightColor * LightIntensity;
+        return SurfaceOutput(lighting * albedo.rgb + specular * shadow, albedo.a);
     }
     // Preserve the original vertex-tinted highlights for legacy solid materials.
-    return SurfaceOutput(DiffuseLighting(NdotL) * albedo.rgb
-                         + specular * input.color.rgb, albedo.a);
+    float3 legacyLighting = (MaterialAmbient + MaterialDiffuse * NdotL * shadow) * LightColor * LightIntensity;
+    return SurfaceOutput(legacyLighting * albedo.rgb + specular * input.color.rgb * shadow, albedo.a);
 }

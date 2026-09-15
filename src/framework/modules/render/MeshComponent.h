@@ -29,6 +29,8 @@ public:
     float planeDepth = 10.0f;
     int planeSegmentsX = 1;
     int planeSegmentsZ = 1;
+    // Depth-only shadow pass skips non-casters. Receivers stay material-specific.
+    bool castsShadow = true;
     bool uploaded = false; // выставляет ResourceLoader после создания GPU-ресурсов
 
     // --- GPU-ресурсы (заполняет ResourceLoader) ---------------------------

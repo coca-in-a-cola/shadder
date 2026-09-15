@@ -34,6 +34,8 @@ class Game {
   // Внутренние методы для управления кадрами
   void Update(float deltaTime);
   void Draw();
+  // Restore swap-chain target after an offscreen render pass.
+  void RestoreDefaultTargets() { RestoreTargets(); }
 
   // ImGui access
   ImGuiContext* GetImGuiContext() const { return imguiContext; }
@@ -44,6 +46,7 @@ class Game {
   [[nodiscard]] ID3D11DeviceContext *GetContext() const { return context.Get(); }
   [[nodiscard]] IDXGISwapChain *GetSwapChain() const { return swapChain.Get(); }
   [[nodiscard]] ID3D11RenderTargetView *GetRenderTargetView() const { return renderTargetView.Get(); }
+  [[nodiscard]] ID3D11DepthStencilView *GetDepthStencilView() const { return depthStencilView.Get(); }
   [[nodiscard]] InputDevice *GetInputDevice() const { return inputDevice.get(); }
   [[nodiscard]] Display *GetDisplay() const { return display; }
   [[nodiscard]] ScreenSize GetScreenSize() const { return screenSize; }
