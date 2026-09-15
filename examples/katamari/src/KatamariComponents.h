@@ -45,6 +45,7 @@ struct KatamariPickupComponent final : public shadder::ComponentBase {
     bool pickedUp = false;  // подобран?
     float stuckAngle = 0.0f;// угол на поверхности шара (куда прилип)
     float stuckHeight = 0.0f; // высота на поверхности шара
+    DirectX::XMFLOAT4 stuckRotation = { 0.0f, 0.0f, 0.0f, 1.0f };
 };
 
 // Глобальное состояние игры.

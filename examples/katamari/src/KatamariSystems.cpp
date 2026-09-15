@@ -13,6 +13,8 @@
 
 using namespace DirectX;
 
+static constexpr float kFieldHalf = 40.0f;
+
 // -----------------------------------------------------------------------------
 // KatamariBallSystem
 // -----------------------------------------------------------------------------
@@ -47,6 +49,11 @@ void KatamariBallSystem::OnUpdate(World& world, float dt) {
         tr.position.x += dir.x * speed * dt;
         tr.position.z += dir.y * speed * dt;
         tr.position.y = ball.radius;
+
+        // Four invisible walls: keep ball volume inside square green field.
+        const float limit = std::max(0.0f, kFieldHalf - ball.radius);
+        tr.position.x = std::max(-limit, std::min(limit, tr.position.x));
+        tr.position.z = std::max(-limit, std::min(limit, tr.position.z));
 
         // Визуальное вращение шара: ось = (up × moveDir), угол = путь / радиус.
         if (lenSq > 1e-6f) {
@@ -108,8 +115,12 @@ void KatamariPickupSystem::OnUpdate(World& world, float) {
         if (distSq < sum * sum && p.radius < ballRadius) {
             p.pickedUp = true;
 
-            // Направление от центра шара к объекту (локально: до поворота шара).
-            XMVECTOR toObj = XMVector3Normalize(XMVectorSet(dx, dy, dz, 0.0f));
+            // Store attachment direction in ball-local space. This prevents a
+            // rotated ball from changing the object's attachment point.
+            XMVECTOR toObjWorld = XMVector3Normalize(XMVectorSet(dx, dy, dz, 0.0f));
+            XMVECTOR toObj = XMVector3Rotate(
+                toObjWorld,
+                XMQuaternionConjugate(XMLoadFloat4(&ballRot)));
             XMFLOAT3 dirLocal;
             XMStoreFloat3(&dirLocal, toObj);
 
@@ -119,6 +130,13 @@ void KatamariPickupSystem::OnUpdate(World& world, float) {
 
             p.stuckAngle = theta;
             p.stuckHeight = std::cos(phi); // = dirLocal.y
+
+            // Preserve object's own orientation as local rotation. Later its
+            // world rotation is composed with ball rotation around ball center.
+            XMVECTOR localRotation = XMQuaternionMultiply(
+                XMQuaternionConjugate(XMLoadFloat4(&ballRot)),
+                XMLoadFloat4(&tr.rotation));
+            XMStoreFloat4(&p.stuckRotation, XMQuaternionNormalize(localRotation));
 
             // Рост шара: пропорционально объёму подобранного (кубический корень),
             // с минимумом, чтобы мелочь тоже двигала прогресс.
@@ -164,6 +182,14 @@ void KatamariPickupSystem::OnUpdate(World& world, float) {
         XMFLOAT3 wf;
         XMStoreFloat3(&wf, world);
         tr.position = { ballPosNow.x + wf.x, ballPosNow.y + wf.y, ballPosNow.z + wf.z };
+
+        // Rotate each object by same ball rotation axis, while preserving its
+        // orientation relative to ball. Position remains centered on ball.
+        XMVECTOR ballQuaternion = XMLoadFloat4(&ballRotNow);
+        XMVECTOR localRotation = XMLoadFloat4(&p.stuckRotation);
+        XMStoreFloat4(&tr.rotation,
+                      XMQuaternionNormalize(XMQuaternionMultiply(
+                          ballQuaternion, localRotation)));
     });
 }
 

@@ -42,7 +42,7 @@ using namespace DirectX;
 
 static const float  kFieldHalf = 40.0f;   // половина стороны игрового поля
 static const float  kBallStartRadius = 0.3f;
-static const int    kPickupCount = 240;   // объектов на поле
+static const int    kPickupCount = 500;   // объектов на поле
 static const uint32_t kSeed = 20260910;   // фиксированный seed (воспроизводимость, спека п.3)
 
 static Game* g_Game = nullptr;
